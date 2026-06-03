@@ -36,38 +36,17 @@ jobs:
           java-version: '8'
           cache: maven
 
-      - name: Install Snyk CLI
-        uses: snyk/actions/setup@master
-
-      - name: Snyk auth
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk auth "$SNYK_TOKEN"
-
       - name: Generate CycloneDX JSON SBOM (alle Maven-modules)
         run: |
+          # Genereer een geaggregeerde CycloneDX 1.6 JSON-SBOM over alle Maven-modules.
+          # Draait volledig lokaal via de officiele CycloneDX Maven-plugin: geen externe
+          # API en geen token nodig. De aggregate-BOM komt in de root-target-map terecht.
+          mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom \
+            -DschemaVersion=1.6 \
+            -DoutputFormat=json \
+            -DoutputName=sbom.cdx
           mkdir -p docs
-          # Snyk schrijft de SBOM naar stdout en (bij een fout) de melding naar stderr.
-          # We splitsen die streams zodat een fout NIET in het SBOM-bestand verdwijnt
-          # maar zichtbaar blijft in de Actions-log. --debug toont de onderliggende
-          # Maven-resolutie zodat we de echte oorzaak zien.
-          set +e
-          snyk sbom --all-projects --format=cyclonedx1.6+json --debug \
-            1> docs/sbom.cdx.json \
-            2> snyk-error.log
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            echo "::error::Snyk SBOM-generatie faalde met exit code $status. Zie details hieronder."
-            echo "::group::Snyk debug/stderr (volledig)"
-            cat snyk-error.log
-            echo "::endgroup::"
-            echo "===== Laatste 100 regels van Snyk stderr (meestal de echte fout) ====="
-            tail -n 100 snyk-error.log
-            echo "===== Begin van stdout (docs/sbom.cdx.json) ====="
-            head -n 50 docs/sbom.cdx.json
-            exit "$status"
-          fi
+          cp target/sbom.cdx.json docs/sbom.cdx.json
           echo "SBOM geschreven naar docs/sbom.cdx.json"
 
       - name: Validate CycloneDX JSON
@@ -83,7 +62,7 @@ jobs:
           {
             echo "### CycloneDX SBOM succesvol gevalideerd"
             echo ""
-            echo "- **Tool:** Snyk CLI (\`snyk sbom\`)"
+            echo "- **Tool:** CycloneDX Maven plugin (\`makeAggregateBom\`)"
             echo "- **Formaat:** CycloneDX 1.6 JSON"
             echo "- **Bestand:** \`docs/sbom.cdx.json\`"
             echo ""
@@ -112,7 +91,7 @@ jobs:
               body: [
                 '### CycloneDX SBOM succesvol gevalideerd',
                 '',
-                '- **Tool:** Snyk CLI (`snyk sbom`)',
+                '- **Tool:** CycloneDX Maven plugin (`makeAggregateBom`)',
                 '- **Formaat:** CycloneDX 1.6 JSON',
                 '- **Bestand:** `docs/sbom.cdx.json` (ook beschikbaar als CI-artifact `sbom-cyclonedx-json`)',
                 '',
