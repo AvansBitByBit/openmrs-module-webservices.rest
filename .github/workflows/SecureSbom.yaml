@@ -38,9 +38,7 @@ jobs:
 
       - name: Generate CycloneDX JSON SBOM (alle Maven-modules)
         run: |
-          # Genereer een geaggregeerde CycloneDX 1.6 JSON-SBOM over alle Maven-modules.
-          # Draait volledig lokaal via de officiele CycloneDX Maven-plugin: geen externe
-          # API en geen token nodig. De aggregate-BOM komt in de root-target-map terecht.
+          # aggregate BOM van alle modules, lokaal via de maven plugin
           mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom \
             -DschemaVersion=1.6 \
             -DoutputFormat=json \
