@@ -47,7 +47,27 @@ jobs:
       - name: Generate CycloneDX JSON SBOM (alle Maven-modules)
         run: |
           mkdir -p docs
-          snyk sbom --all-projects --format=cyclonedx1.6+json > docs/sbom.cdx.json
+          # Snyk schrijft de SBOM naar stdout en (bij een fout) de melding naar stderr.
+          # We splitsen die streams zodat een fout NIET in het SBOM-bestand verdwijnt
+          # maar zichtbaar blijft in de Actions-log. --debug toont de onderliggende
+          # Maven-resolutie zodat we de echte oorzaak zien.
+          set +e
+          snyk sbom --all-projects --format=cyclonedx1.6+json --debug \
+            1> docs/sbom.cdx.json \
+            2> snyk-error.log
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Snyk SBOM-generatie faalde met exit code $status. Zie details hieronder."
+            echo "::group::Snyk debug/stderr (volledig)"
+            cat snyk-error.log
+            echo "::endgroup::"
+            echo "===== Laatste 100 regels van Snyk stderr (meestal de echte fout) ====="
+            tail -n 100 snyk-error.log
+            echo "===== Begin van stdout (docs/sbom.cdx.json) ====="
+            head -n 50 docs/sbom.cdx.json
+            exit "$status"
+          fi
           echo "SBOM geschreven naar docs/sbom.cdx.json"
 
       - name: Validate CycloneDX JSON
