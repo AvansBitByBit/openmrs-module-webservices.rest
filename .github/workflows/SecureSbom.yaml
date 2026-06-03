@@ -1,0 +1,114 @@
+name: Secure SBOM (CycloneDX)
+
+on:
+  push:
+    branches:
+      - SCRUM-15
+      - dev
+      - acceptance
+      - master
+    paths-ignore:
+      - 'docs/sbom.cdx.json'
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sbom-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      - name: Snyk auth
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk auth "$SNYK_TOKEN"
+
+      - name: Generate CycloneDX JSON SBOM (alle Maven-modules)
+        run: |
+          mkdir -p docs
+          snyk sbom --all-projects --format=cyclonedx1.6+json > docs/sbom.cdx.json
+          echo "SBOM geschreven naar docs/sbom.cdx.json"
+
+      - name: Validate CycloneDX JSON
+        run: |
+          curl -sSfL -o cyclonedx \
+            https://github.com/CycloneDX/cyclonedx-cli/releases/latest/download/cyclonedx-linux-x64
+          chmod +x cyclonedx
+          # --fail-on-errors laat de job falen als de SBOM geen geldige CycloneDX JSON is
+          ./cyclonedx validate \
+            --input-file docs/sbom.cdx.json \
+            --input-format json \
+            --fail-on-errors | tee validation.txt
+          {
+            echo "### CycloneDX SBOM succesvol gevalideerd"
+            echo ""
+            echo "- **Tool:** Snyk CLI (\`snyk sbom\`)"
+            echo "- **Formaat:** CycloneDX 1.6 JSON"
+            echo "- **Bestand:** \`docs/sbom.cdx.json\`"
+            echo ""
+            echo "Validatie-output (\`cyclonedx validate --fail-on-errors\`):"
+            echo '```'
+            cat validation.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SBOM als CI-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-json
+          path: docs/sbom.cdx.json
+          if-no-files-found: error
+
+      - name: Comment op PR met validatiebevestiging
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '### CycloneDX SBOM succesvol gevalideerd',
+                '',
+                '- **Tool:** Snyk CLI (`snyk sbom`)',
+                '- **Formaat:** CycloneDX 1.6 JSON',
+                '- **Bestand:** `docs/sbom.cdx.json` (ook beschikbaar als CI-artifact `sbom-cyclonedx-json`)',
+                '',
+                'De output is succesvol gevalideerd als CycloneDX JSON met `cyclonedx validate --fail-on-errors`.'
+              ].join('\n')
+            })
+
+      - name: Commit SBOM naar docs/sbom.cdx.json
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/sbom.cdx.json
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen in de SBOM — niets te committen."
+          else
+            git commit -m "chore: update CycloneDX SBOM [skip ci]"
+            git push
+          fi
