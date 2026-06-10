@@ -38,6 +38,88 @@ the tests.
 
 ## Developer Documentation
 
+### Omgevingen en CI/CD
+
+Deze repository gebruikt minimaal twee gescheiden deploymentomgevingen:
+
+| Omgeving | GitHub Environment | Doel | Branches |
+| --- | --- | --- | --- |
+| Test | `test` | Integratie- en acceptatievalidatie met synthetische testdata. | `dev`, `acceptance`, `devprodomgeving` |
+| Productie | `productie` | Release naar de productieomgeving met echte zorgdata. | `master` |
+
+De GitHub Actions workflow staat in `.github/workflows/ci-cd-environments.yml`. Pull requests voeren alleen policy checks en Maven build/tests uit. Deployments lopen via GitHub Environments, zodat configuratie, secrets en approval gates per omgeving gescheiden blijven.
+
+#### Gescheiden configuratie en secrets
+
+Omgevingsspecifieke configuratie staat niet in de repository. Gebruik per GitHub Environment eigen variables en secrets:
+
+| Naam | Type | Gebruik |
+| --- | --- | --- |
+| `OPENMRS_BASE_URL` | Environment variable | Basis-URL van de OpenMRS instance voor die omgeving. |
+| `DEPLOY_ENABLED` | Environment variable | `true` activeert de echte deploystap nadat het deploycommando is gekoppeld. |
+| `DEPLOY_TOKEN` | Environment secret | Token of credential voor deployment naar alleen die omgeving. |
+
+Secrets worden dus niet als repository-wide secrets gebruikt. Hetzelfde secret-veld mag in `test` en `productie` dezelfde naam hebben, maar GitHub bewaart en verstrekt de waarden per environment gescheiden. Lokale `.env`-bestanden en secret-bestanden mogen niet worden gecommit; de workflow blokkeert dit.
+
+#### GitHub Environment protection rules
+
+De volgende protection rules horen bij de environments:
+
+| Environment | Protection |
+| --- | --- |
+| `test` | Required reviewers aan, deployment branches beperkt tot `dev`, `acceptance` en `devprodomgeving`. |
+| `productie` | Required reviewers aan, deployment branches beperkt tot `master`, self-review uit waar beschikbaar. |
+
+De productiejob controleert daarnaast zelf dat de deployment vanaf `master` komt. Daardoor kan een handmatige `workflow_dispatch` vanaf een andere branch niet naar productie deployen.
+
+#### NEN-7510 controls voor CI/CD
+
+De CI/CD-inrichting ondersteunt de volgende NEN-7510-maatregelen:
+
+| Control | Inrichting |
+| --- | --- |
+| Scheiding van omgevingen | Aparte GitHub Environments `test` en `productie` met eigen variables, secrets en branch policies. |
+| Least privilege | De workflow gebruikt alleen `contents: read` en krijgt secrets pas in de environment-job. |
+| Vier-ogenprincipe | Environment approvals zijn verplicht voor deployments, met extra nadruk op productie. |
+| Traceerbaarheid | GitHub Actions bewaart per run commit, actor, approval en artifact. |
+| Wijzigingsbeheer | Productie is beperkt tot `master`; pull requests draaien eerst build en policy checks. |
+| Bescherming van vertrouwelijke gegevens | Geen secrets in code, geen repository-wide deployment secrets, en policy check tegen committed `.env`/secret-bestanden. |
+| Scheiding testdata/productiedata | Testdata blijft onder `src/test/resources`; de workflow controleert dat deploybare `.omod` artifacts geen testfixtures bevatten. |
+| Herleidbare artifacts | De `.omod` wordt als workflow artifact opgeslagen met beperkte retentie. |
+
+#### Voorkomen dat testdata in productie komt
+
+Testdata staat alleen in testresources zoals `omod/src/test/resources`. Maven gebruikt deze resources voor tests, maar ze horen niet in het deploybare `.omod` artifact. De workflow inspecteert elk gebouwd `.omod` artifact en faalt als bekende testfixture-patronen zoals `testDataset`, `_testData`, `create_patient.json` of `update_patient.json` toch in het artifact zitten.
+
+Productie gebruikt daarnaast alleen de `productie` environment, de `productie` secrets en de `master` branch. Testdeployments gebruiken de `test` environment en kunnen niet bij productie-secrets.
+
+#### Nieuwe ontwikkelaar
+
+1. Clone de repository:
+
+```
+git clone https://github.com/AvansBitByBit/openmrs-module-webservices.rest
+cd openmrs-module-webservices.rest
+```
+
+2. Installeer Java 8 en Maven.
+
+3. Build lokaal:
+
+```
+mvn clean install
+```
+
+4. Run integration tests tegen een lokale OpenMRS server:
+
+```
+mvn clean verify -Pintegration-tests -DtestUrl=http://admin:Admin123@localhost:8080/openmrs
+```
+
+5. Maak voor lokale configuratie alleen lokale, niet-gecommitte bestanden aan. Commit geen `.env`, tokens, wachtwoorden of exportbestanden met zorgdata.
+
+6. Werk via pull requests. Een merge naar `dev`, `acceptance` of `devprodomgeving` kan de test-gate gebruiken; productie loopt alleen via `master` en vereist environment approval.
+
 ### Integration Tests
 
 Integration tests can be found in the integration-tests directory. They are written with JUnit and Rest-Assured.

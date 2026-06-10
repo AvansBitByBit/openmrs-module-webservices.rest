@@ -1,0 +1,202 @@
+name: CI/CD environments
+
+on:
+  push:
+    branches:
+      - dev
+      - acceptance
+      - devprodomgeving
+      - master
+  pull_request:
+    branches:
+      - dev
+      - acceptance
+      - master
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Environment to deploy to
+        required: true
+        type: choice
+        options:
+          - test
+          - productie
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy-check:
+    name: Environment policy check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Block committed environment files and local secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -Ei '(^|/)(\.env($|[.])|.*secret.*|.*secrets.*)$'; then
+            echo "Environment files or secret-like files must not be committed."
+            echo "Use GitHub Environment variables and Environment secrets instead."
+            exit 1
+          fi
+
+      - name: Validate production deployments only come from master
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment == 'productie' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_NAME}" != "master" ]; then
+            echo "Production deployments are only allowed from master."
+            exit 1
+          fi
+
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    needs: policy-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn --batch-mode --no-transfer-progress clean package
+
+      - name: Validate production artifact has no test resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t artifacts < <(find . -path '*/target/*.omod' -type f)
+          if [ "${#artifacts[@]}" -eq 0 ]; then
+            echo "No OMOD artifact found."
+            exit 1
+          fi
+
+          for artifact in "${artifacts[@]}"; do
+            if unzip -l "$artifact" | grep -Ei 'src/test|testDataset|TestDataset|_testData|create_patient\.json|update_patient\.json'; then
+              echo "Test fixture data found in deployable artifact: $artifact"
+              exit 1
+            fi
+          done
+
+      - name: Upload deployable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webservices-rest-omod
+          path: "**/target/*.omod"
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy-test:
+    name: Deploy to test
+    runs-on: ubuntu-latest
+    needs: build
+    if: >-
+      ${{
+        github.event_name != 'pull_request' &&
+        (
+          github.ref_name == 'dev' ||
+          github.ref_name == 'acceptance' ||
+          github.ref_name == 'devprodomgeving' ||
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'test')
+        )
+      }}
+    environment:
+      name: test
+      url: ${{ vars.OPENMRS_BASE_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webservices-rest-omod
+          path: dist
+
+      - name: Check test environment configuration
+        shell: bash
+        env:
+          DEPLOY_ENABLED: ${{ vars.DEPLOY_ENABLED }}
+          OPENMRS_BASE_URL: ${{ vars.OPENMRS_BASE_URL }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${DEPLOY_ENABLED:-false}" != "true" ]; then
+            echo "Test deployment is gated and prepared; set DEPLOY_ENABLED=true to activate the deploy command."
+            exit 0
+          fi
+
+          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for test."; exit 1; }
+          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for test."; exit 1; }
+
+      - name: Deploy artifact to test
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deploy command for the test OpenMRS environment belongs here."
+
+  deploy-productie:
+    name: Deploy to productie
+    runs-on: ubuntu-latest
+    needs: build
+    if: >-
+      ${{
+        github.event_name != 'pull_request' &&
+        (
+          github.ref_name == 'master' ||
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'productie')
+        )
+      }}
+    environment:
+      name: productie
+      url: ${{ vars.OPENMRS_BASE_URL }}
+    steps:
+      - name: Enforce production branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_NAME}" != "master" ]; then
+            echo "Production deployments are only allowed from master."
+            exit 1
+          fi
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webservices-rest-omod
+          path: dist
+
+      - name: Check production environment configuration
+        shell: bash
+        env:
+          DEPLOY_ENABLED: ${{ vars.DEPLOY_ENABLED }}
+          OPENMRS_BASE_URL: ${{ vars.OPENMRS_BASE_URL }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${DEPLOY_ENABLED:-false}" != "true" ]; then
+            echo "Production deployment is gated and prepared; set DEPLOY_ENABLED=true after the production deploy command is connected."
+            exit 0
+          fi
+
+          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for productie."; exit 1; }
+          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for productie."; exit 1; }
+
+      - name: Deploy artifact to productie
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deploy command for the production OpenMRS environment belongs here."
