@@ -22,14 +22,16 @@ import org.openmrs.GlobalProperty;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * Tests for the {@link RestUtil} class.
  */
 public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return true if list is empty
@@ -38,7 +40,7 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void ipMatches_shouldReturnTrueIfListIsEmpty() throws Exception {
 		Assert.assertTrue(RestUtil.ipMatches("10.0.0.0", new ArrayList<String>()));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return false if there is no match
@@ -48,10 +50,10 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("10.0.0.0");
 		candidateIps.add("10.0.0.1");
-		
+
 		Assert.assertFalse(RestUtil.ipMatches("10.0.0.2", candidateIps));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return true for exact match
@@ -61,10 +63,10 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("10.0.0.0");
 		candidateIps.add("10.0.0.1");
-		
+
 		Assert.assertTrue(RestUtil.ipMatches("10.0.0.1", candidateIps));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return true for match with submask
@@ -73,10 +75,10 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void ipMatches_shouldReturnTrueForMatchWithSubmask() throws Exception {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("10.0.0.0/30");
-		
+
 		Assert.assertTrue(RestUtil.ipMatches("10.0.0.1", candidateIps));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return false if there is no match with submask
@@ -85,10 +87,10 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void ipMatches_shouldReturnFalseIfThereIsNoMatchWithSubmask() throws Exception {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("10.0.0.0/30");
-		
+
 		Assert.assertFalse(RestUtil.ipMatches("10.0.0.4", candidateIps));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies return true for exact ipv6 match
@@ -97,10 +99,10 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void ipMatches_shouldReturnTrueForExactIpv6Match() throws Exception {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("fe80:0:0:0:202:b3ff:fe1e:8329");
-		
+
 		Assert.assertTrue(RestUtil.ipMatches("fe80::202:b3ff:fe1e:8329", candidateIps));
 	}
-	
+
 	/**
 	 * @see RestUtil#ipMatches(String,List)
 	 * @verifies throw IllegalArgumentException for invalid mask
@@ -109,36 +111,89 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void ipMatches_shouldThrowIllegalArgumentExceptionForInvalidMask() throws Exception {
 		List<String> candidateIps = new ArrayList<String>();
 		candidateIps.add("10.0.0.0/33");
-		
+
 		RestUtil.ipMatches("10.0.0.4", candidateIps);
 	}
-	
+
 	/**
 	 * @see RestUtil#getBooleanParam(HttpServletRequest,String)
 	 * @verifies return true only if request param is 'true'
 	 */
 	@Test
 	public void getBooleanParam_shouldReturnTrueOnlyIfRequestParamIsTrue() throws Exception {
-		
+
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		String includeAllParam = RestConstants.REQUEST_PROPERTY_FOR_INCLUDE_ALL;
-		
+
 		Assert.assertNull("getBooleanParam should return true if includeAllParam is not set",
 		    RestUtil.getBooleanParam(request, includeAllParam));
-		
+
 		request.setParameter(includeAllParam, "true");
 		Assert.assertTrue("getBooleanParam should return true if includeAllParam is equal 'true'",
 		    RestUtil.getBooleanParam(request, includeAllParam));
-		
+
 		request.setParameter(includeAllParam, "t");
 		Assert.assertFalse("getBooleanParam should return false if includeAllParam is not equal to 'true'",
 		    RestUtil.getBooleanParam(request, includeAllParam));
-		
+
 		request.setParameter(includeAllParam, (String) null);
 		Assert.assertNull("getBooleanParam should return null if includeAllParam is null",
 		    RestUtil.getBooleanParam(request, includeAllParam));
 	}
-	
+
+	@Test
+	public void getRequestContext_shouldParseValidPagingAndIncludeAllParameters() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_LIMIT, "2");
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_START_INDEX, "4");
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_INCLUDE_ALL, "true");
+
+		RequestContext context = RestUtil.getRequestContext(request, new MockHttpServletResponse());
+
+		Assert.assertEquals(Integer.valueOf(2), context.getLimit());
+		Assert.assertEquals(Integer.valueOf(4), context.getStartIndex());
+		Assert.assertTrue(context.getIncludeAll());
+		Assert.assertEquals(Representation.DEFAULT, context.getRepresentation());
+	}
+
+	@Test
+	public void getRequestContext_shouldIgnoreInvalidIntegerParametersAndUseDefaults() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_LIMIT, "invalid-limit");
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_START_INDEX, "invalid-start-index");
+
+		RequestContext context = RestUtil.getRequestContext(request, new MockHttpServletResponse());
+
+		Assert.assertEquals(RestUtil.getDefaultLimit(), context.getLimit());
+		Assert.assertEquals(Integer.valueOf(0), context.getStartIndex());
+	}
+
+	@Test
+	public void getRequestContext_shouldSetIncludeAllFalseForInvalidBooleanParameter() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addParameter(RestConstants.REQUEST_PROPERTY_FOR_INCLUDE_ALL, "not-boolean");
+
+		RequestContext context = RestUtil.getRequestContext(request, new MockHttpServletResponse());
+
+		Assert.assertFalse(context.getIncludeAll());
+	}
+
+	@Test
+	public void getDefaultLimit_shouldReturnDefaultIfGlobalPropertyIsMalformed() throws Exception {
+		Context.getAdministrationService().saveGlobalProperty(
+		    new GlobalProperty(RestConstants.MAX_RESULTS_DEFAULT_GLOBAL_PROPERTY_NAME, "not-an-integer"));
+
+		Assert.assertEquals(RestConstants.MAX_RESULTS_DEFAULT, RestUtil.getDefaultLimit());
+	}
+
+	@Test
+	public void getAbsoluteLimit_shouldReturnDefaultIfGlobalPropertyIsMalformed() throws Exception {
+		Context.getAdministrationService().saveGlobalProperty(
+		    new GlobalProperty(RestConstants.MAX_RESULTS_ABSOLUTE_GLOBAL_PROPERTY_NAME, "not-an-integer"));
+
+		Assert.assertEquals(RestConstants.MAX_RESULTS_ABSOLUTE, RestUtil.getAbsoluteLimit());
+	}
+
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
 	 * @verifies sets message to the exception message if the reason given is null
@@ -149,7 +204,7 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
 		Assert.assertEquals("[exceptionmessage]", errorResponseMap.get("message"));
 	}
-	
+
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
 	 * @verifies sets message to the exception message if the reason given is empty
@@ -160,7 +215,7 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
 		Assert.assertEquals("[exceptionmessage]", errorResponseMap.get("message"));
 	}
-	
+
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
 	 * @verifies sets the reason passed into wrapErrorResponse as the message if it is nonempty
@@ -171,7 +226,7 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
 		Assert.assertEquals("reason [exceptionmessage]", errorResponseMap.get("message"));
 	}
-	
+
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
 	 * @verifies set stack trace code if available
@@ -186,7 +241,7 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
 		Assert.assertEquals("org.mypackage.myclassname:149", errorResponseMap.get("code"));
 	}
-	
+
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
 	 * @verifies set stack trace code and detail empty if not available
@@ -195,9 +250,9 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 	public void wrapErrorResponse_shouldSetStackTraceCodeAndDetailEmptyIfNotAvailable() throws Exception {
 		Exception apiException = new APIException("exceptionmessage");
 		apiException.setStackTrace(new StackTraceElement[] {} );
-		
+
 		SimpleObject returnObject = RestUtil.wrapErrorResponse(apiException, "wraperrorresponsemessage");
-		
+
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
 		Assert.assertEquals("", errorResponseMap.get("code"));
 		Assert.assertEquals("", errorResponseMap.get("detail"));
