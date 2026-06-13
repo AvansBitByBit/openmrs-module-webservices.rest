@@ -10,6 +10,10 @@
 target/
 #############
 
+### Docker Compose generated module artifacts ###
+docker/modules/*.omod
+#############
+
 ### Eclipse ###
 *.pydevproject
 .project

@@ -38,39 +38,74 @@ the tests.
 
 ## Developer Documentation
 
-### Omgevingen en CI/CD
+### OTAP omgevingen en CI/CD
 
-Deze repository gebruikt minimaal twee gescheiden deploymentomgevingen:
+Deze repository gebruikt drie gescheiden deploymentomgevingen:
 
-| Omgeving | GitHub Environment | Doel | Branches |
-| --- | --- | --- | --- |
-| Test | `test` | Integratie- en acceptatievalidatie met synthetische testdata. | `dev`, `acceptance`, `devprodomgeving` |
-| Productie | `productie` | Release naar de productieomgeving met echte zorgdata. | `master` |
+| Omgeving | GitHub Environment | Compose-bestand | Doel | Branches |
+| --- | --- | --- | --- | --- |
+| Dev | `Dev` | `docker-compose.dev.yml` | Lokale/dev-validatie met snelle module-build. | `dev` |
+| Test | `Test` | `docker-compose.test.yml` | Integratie- en acceptatievalidatie met testconfiguratie. | `acceptance`, `devprodomgeving` |
+| Prod | `Prod` | `docker-compose.prod.yml` | Productie-release met verplichte secrets en approval gate. | `master` |
 
-De GitHub Actions workflow staat in `.github/workflows/ci-cd-environments.yml`. Pull requests voeren alleen policy checks en Maven build/tests uit. Deployments lopen via GitHub Environments, zodat configuratie, secrets en approval gates per omgeving gescheiden blijven.
+De GitHub Actions workflow staat in `.github/workflows/ci-cd-environments.yml`. Pull requests voeren policy checks en Maven build/tests uit. Deployments lopen via GitHub Environments, zodat configuratie, secrets en approval gates per omgeving gescheiden blijven.
 
-#### Gescheiden configuratie en secrets
+#### Docker Compose
 
-Omgevingsspecifieke configuratie staat niet in de repository. Gebruik per GitHub Environment eigen variables en secrets:
+Start een specifieke omgeving met Docker Compose:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.test.yml up --build
+docker compose -f docker-compose.prod.yml up --build
+```
+
+Dev gebruikt poort `8080`; Test gebruikt standaard poort `8081`; Prod gebruikt standaard poort `8080`. Voor Test en Prod kan de hostpoort worden aangepast met `OPENMRS_HTTP_PORT`.
+
+De compose-bestanden bevatten een `module-builder` service. Die bouwt de `.omod` met Maven en kopieert het resultaat naar `docker/modules/`. De OpenMRS-container mount deze map als `/openmrs/data/modules`, zodat de gebouwde REST-module in de omgeving geladen kan worden. Gegenereerde `.omod` bestanden in `docker/modules/` worden niet gecommit.
+
+Voor Prod moeten secrets expliciet als environment variables worden gezet voordat de omgeving start:
+
+```bash
+export OMRS_DB_PASSWORD="change-me"
+export OMRS_DB_ROOT_PASSWORD="change-me-root"
+export OMRS_ADMIN_USER_PASSWORD="change-me-admin"
+docker compose -f docker-compose.prod.yml up --build
+```
+
+#### GitHub Environments
+
+Maak in de repository-instellingen onder `Settings > Environments` de volgende environments aan:
+
+```text
+Dev
+Test
+Prod
+```
+
+Gebruik per GitHub Environment eigen variables en secrets:
 
 | Naam | Type | Gebruik |
 | --- | --- | --- |
 | `OPENMRS_BASE_URL` | Environment variable | Basis-URL van de OpenMRS instance voor die omgeving. |
 | `DEPLOY_ENABLED` | Environment variable | `true` activeert de echte deploystap nadat het deploycommando is gekoppeld. |
 | `DEPLOY_TOKEN` | Environment secret | Token of credential voor deployment naar alleen die omgeving. |
+| `OPENMRS_TEST_USERNAME` | Environment secret | Gebruiker voor live API/Postman tests in `Test`. |
+| `OPENMRS_TEST_PASSWORD` | Environment secret | Wachtwoord voor live API/Postman tests in `Test`. |
 
-Secrets worden dus niet als repository-wide secrets gebruikt. Hetzelfde secret-veld mag in `test` en `productie` dezelfde naam hebben, maar GitHub bewaart en verstrekt de waarden per environment gescheiden. Lokale `.env`-bestanden en secret-bestanden mogen niet worden gecommit; de workflow blokkeert dit.
+Secrets worden niet als repository-wide secrets gebruikt. Hetzelfde secret-veld mag in `Dev`, `Test` en `Prod` dezelfde naam hebben, maar GitHub bewaart en verstrekt de waarden per environment gescheiden. Lokale `.env`-bestanden en secret-bestanden mogen niet worden gecommit; de workflow blokkeert dit.
 
-#### GitHub Environment protection rules
+#### Protection rules
 
-De volgende protection rules horen bij de environments:
+Configureer de volgende protection rules in GitHub:
 
 | Environment | Protection |
 | --- | --- |
-| `test` | Required reviewers aan, deployment branches beperkt tot `dev`, `acceptance` en `devprodomgeving`. |
-| `productie` | Required reviewers aan, deployment branches beperkt tot `master`, self-review uit waar beschikbaar. |
+| `Dev` | Geen verplichte reviewer nodig; deployment branches beperken tot `dev`. |
+| `Test` | Optioneel required reviewers aan; deployment branches beperken tot `acceptance` en `devprodomgeving`. |
+| `Prod` | Required reviewers aan met minimaal 1 approver; deployment branches beperken tot `master`; self-review uit waar beschikbaar. |
 
-De productiejob controleert daarnaast zelf dat de deployment vanaf `master` komt. Daardoor kan een handmatige `workflow_dispatch` vanaf een andere branch niet naar productie deployen.
+De productiejob controleert daarnaast zelf dat de deployment vanaf `master` komt. Daardoor kan een handmatige `workflow_dispatch` vanaf een andere branch niet naar Prod deployen.
 
 #### NEN-7510 controls voor CI/CD
 
@@ -78,9 +113,9 @@ De CI/CD-inrichting ondersteunt de volgende NEN-7510-maatregelen:
 
 | Control | Inrichting |
 | --- | --- |
-| Scheiding van omgevingen | Aparte GitHub Environments `test` en `productie` met eigen variables, secrets en branch policies. |
+| Scheiding van omgevingen | Aparte Docker Compose bestanden en GitHub Environments `Dev`, `Test` en `Prod` met eigen variables, secrets en branch policies. |
 | Least privilege | De workflow gebruikt alleen `contents: read` en krijgt secrets pas in de environment-job. |
-| Vier-ogenprincipe | Environment approvals zijn verplicht voor deployments, met extra nadruk op productie. |
+| Vier-ogenprincipe | Environment approvals zijn verplicht voor `Prod` en optioneel voor `Test`. |
 | Traceerbaarheid | GitHub Actions bewaart per run commit, actor, approval en artifact. |
 | Wijzigingsbeheer | Productie is beperkt tot `master`; pull requests draaien eerst build en policy checks. |
 | Bescherming van vertrouwelijke gegevens | Geen secrets in code, geen repository-wide deployment secrets, en policy check tegen committed `.env`/secret-bestanden. |
@@ -91,7 +126,7 @@ De CI/CD-inrichting ondersteunt de volgende NEN-7510-maatregelen:
 
 Testdata staat alleen in testresources zoals `omod/src/test/resources`. Maven gebruikt deze resources voor tests, maar ze horen niet in het deploybare `.omod` artifact. De workflow inspecteert elk gebouwd `.omod` artifact en faalt als bekende testfixture-patronen zoals `testDataset`, `_testData`, `create_patient.json` of `update_patient.json` toch in het artifact zitten.
 
-Productie gebruikt daarnaast alleen de `productie` environment, de `productie` secrets en de `master` branch. Testdeployments gebruiken de `test` environment en kunnen niet bij productie-secrets.
+Prod gebruikt daarnaast alleen de `Prod` environment, de `Prod` secrets en de `master` branch. Testdeployments gebruiken de `Test` environment en kunnen niet bij productie-secrets.
 
 #### Nieuwe ontwikkelaar
 
@@ -118,7 +153,13 @@ mvn clean verify -Pintegration-tests -DtestUrl=http://admin:Admin123@localhost:8
 
 5. Maak voor lokale configuratie alleen lokale, niet-gecommitte bestanden aan. Commit geen `.env`, tokens, wachtwoorden of exportbestanden met zorgdata.
 
-6. Werk via pull requests. Een merge naar `dev`, `acceptance` of `devprodomgeving` kan de test-gate gebruiken; productie loopt alleen via `master` en vereist environment approval.
+6. Start indien nodig een lokale omgeving:
+
+```
+docker compose -f docker-compose.dev.yml up --build
+```
+
+7. Werk via pull requests. Een merge naar `dev` kan naar `Dev`; een merge naar `acceptance` of `devprodomgeving` kan de `Test` gate gebruiken; productie loopt alleen via `master` en vereist environment approval in `Prod`.
 
 ### Integration Tests
 

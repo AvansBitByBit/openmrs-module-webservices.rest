@@ -19,8 +19,9 @@ on:
         required: true
         type: choice
         options:
-          - test
-          - productie
+          - Dev
+          - Test
+          - Prod
 
 permissions:
   contents: read
@@ -48,7 +49,7 @@ jobs:
           fi
 
       - name: Validate production deployments only come from master
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment == 'productie' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment == 'Prod' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -113,6 +114,51 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: build
+    if: >-
+      ${{
+        github.event_name != 'pull_request' &&
+        (
+          github.ref_name == 'dev' ||
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'Dev')
+        )
+      }}
+    environment:
+      name: Dev
+      url: ${{ vars.OPENMRS_BASE_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webservices-rest-omod
+          path: dist
+
+      - name: Check dev environment configuration
+        shell: bash
+        env:
+          DEPLOY_ENABLED: ${{ vars.DEPLOY_ENABLED }}
+          OPENMRS_BASE_URL: ${{ vars.OPENMRS_BASE_URL }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${DEPLOY_ENABLED:-false}" != "true" ]; then
+            echo "Dev deployment is gated and prepared; set DEPLOY_ENABLED=true to activate the deploy command."
+            exit 0
+          fi
+
+          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for Dev."; exit 1; }
+          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for Dev."; exit 1; }
+
+      - name: Deploy artifact to Dev
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deploy command for the Dev OpenMRS environment belongs here."
+
   live-api-tests:
     name: Live API and Postman tests
     runs-on: ubuntu-latest
@@ -121,14 +167,13 @@ jobs:
       ${{
         github.event_name != 'pull_request' &&
         (
-          github.ref_name == 'dev' ||
           github.ref_name == 'acceptance' ||
           github.ref_name == 'devprodomgeving' ||
-          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'test')
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'Test')
         )
       }}
     environment:
-      name: test
+      name: Test
       url: ${{ vars.OPENMRS_BASE_URL }}
     steps:
       - name: Checkout
@@ -159,7 +204,7 @@ jobs:
             echo "run_live=true" >> "$GITHUB_OUTPUT"
           else
             echo "run_live=false" >> "$GITHUB_OUTPUT"
-            echo "Live API tests skipped because OPENMRS_BASE_URL, OPENMRS_TEST_USERNAME, or OPENMRS_TEST_PASSWORD is missing in the test environment."
+            echo "Live API tests skipped because OPENMRS_BASE_URL, OPENMRS_TEST_USERNAME, or OPENMRS_TEST_PASSWORD is missing in the Test environment."
           fi
 
       - name: Run Rest Assured live integration tests
@@ -205,7 +250,7 @@ jobs:
           retention-days: 30
 
   deploy-test:
-    name: Deploy to test
+    name: Deploy to Test
     runs-on: ubuntu-latest
     needs:
       - build
@@ -214,14 +259,13 @@ jobs:
       ${{
         github.event_name != 'pull_request' &&
         (
-          github.ref_name == 'dev' ||
           github.ref_name == 'acceptance' ||
           github.ref_name == 'devprodomgeving' ||
-          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'test')
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'Test')
         )
       }}
     environment:
-      name: test
+      name: Test
       url: ${{ vars.OPENMRS_BASE_URL }}
     steps:
       - name: Download artifact
@@ -243,18 +287,18 @@ jobs:
             exit 0
           fi
 
-          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for test."; exit 1; }
-          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for test."; exit 1; }
+          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for Test."; exit 1; }
+          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for Test."; exit 1; }
 
-      - name: Deploy artifact to test
+      - name: Deploy artifact to Test
         if: ${{ vars.DEPLOY_ENABLED == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "Deploy command for the test OpenMRS environment belongs here."
+          echo "Deploy command for the Test OpenMRS environment belongs here."
 
-  deploy-productie:
-    name: Deploy to productie
+  deploy-prod:
+    name: Deploy to Prod
     runs-on: ubuntu-latest
     needs: build
     if: >-
@@ -262,11 +306,11 @@ jobs:
         github.event_name != 'pull_request' &&
         (
           github.ref_name == 'master' ||
-          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'productie')
+          (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'Prod')
         )
       }}
     environment:
-      name: productie
+      name: Prod
       url: ${{ vars.OPENMRS_BASE_URL }}
     steps:
       - name: Enforce production branch
@@ -297,10 +341,10 @@ jobs:
             exit 0
           fi
 
-          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for productie."; exit 1; }
-          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for productie."; exit 1; }
+          test -n "${OPENMRS_BASE_URL:-}" || { echo "OPENMRS_BASE_URL is missing for Prod."; exit 1; }
+          test -n "${DEPLOY_TOKEN:-}" || { echo "DEPLOY_TOKEN is missing for Prod."; exit 1; }
 
-      - name: Deploy artifact to productie
+      - name: Deploy artifact to Prod
         if: ${{ vars.DEPLOY_ENABLED == 'true' }}
         shell: bash
         run: |

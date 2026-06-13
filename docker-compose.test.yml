@@ -1,0 +1,59 @@
+services:
+  module-builder:
+    image: maven:3.9.9-eclipse-temurin-8
+    working_dir: /workspace
+    command: >
+      sh -c "mvn --batch-mode --no-transfer-progress clean verify
+      && mkdir -p docker/modules
+      && cp omod/target/*.omod docker/modules/"
+    volumes:
+      - .:/workspace
+      - maven-cache-test:/root/.m2
+
+  db:
+    image: mariadb:10.11.7
+    command: "mariadbd --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
+    environment:
+      MARIADB_DATABASE: openmrs_test
+      MARIADB_USER: openmrs
+      MARIADB_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs-test}
+      MARIADB_ROOT_PASSWORD: ${OMRS_DB_ROOT_PASSWORD:-openmrs-test-root}
+    healthcheck:
+      test: "mariadb --user=openmrs --password=$${MARIADB_PASSWORD} --execute \"SHOW DATABASES;\""
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - openmrs-db-test:/var/lib/mysql
+
+  openmrs:
+    image: openmrs/openmrs-core:2.8.6
+    depends_on:
+      module-builder:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    ports:
+      - "${OPENMRS_HTTP_PORT:-8081}:8080"
+    environment:
+      OMRS_DB: mariadb
+      OMRS_DB_HOSTNAME: db
+      OMRS_DB_NAME: openmrs_test
+      OMRS_DB_USERNAME: openmrs
+      OMRS_DB_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs-test}
+      OMRS_ADMIN_USER_PASSWORD: ${OMRS_ADMIN_USER_PASSWORD:-Admin123}
+      OMRS_ADMIN_PASSWORD_LOCKED: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs/health/alive"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    volumes:
+      - openmrs-data-test:/openmrs/data
+      - ./docker/modules:/openmrs/data/modules:ro
+
+volumes:
+  maven-cache-test:
+  openmrs-db-test:
+  openmrs-data-test:
