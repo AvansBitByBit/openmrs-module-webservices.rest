@@ -11,6 +11,7 @@ package org.openmrs.module.webservices.rest.web.v1_0.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -26,10 +27,12 @@ import org.openmrs.Person;
 import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.api.ValidationException;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -39,13 +42,13 @@ import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import java.util.LinkedHashMap;
 
 public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
-	
+
 	BaseRestController controller;
-	
+
 	MockHttpServletRequest request;
-	
+
 	MockHttpServletResponse response;
-	
+
 	Log spyOnLog;
 
 	@Before
@@ -60,7 +63,7 @@ public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
 		log.setAccessible(true);
 		log.set(controller, spyOnLog);
 	}
-	
+
 	/**
 	 * @verifies return unauthorized if not logged in
 	 * @see BaseRestController#apiAuthenticationExceptionHandler(Exception,
@@ -69,12 +72,31 @@ public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
 	@Test
 	public void apiAuthenticationExceptionHandler_shouldReturnUnauthorizedIfNotLoggedIn() throws Exception {
 		Context.logout();
-		
+
 		controller.apiAuthenticationExceptionHandler(new APIAuthenticationException(), request, response);
-		
+
 		assertThat(response.getStatus(), is(HttpServletResponse.SC_UNAUTHORIZED));
 	}
-	
+
+	@Test
+	public void apiAuthenticationExceptionHandler_shouldAddWwwAuthenticateHeaderIfNotLoggedIn() throws Exception {
+		Context.logout();
+
+		controller.apiAuthenticationExceptionHandler(new APIAuthenticationException(), request, response);
+
+		assertThat(response.getHeader("WWW-Authenticate"), is("Basic realm=\"OpenMRS at " + RestConstants.URI_PREFIX + "\""));
+	}
+
+	@Test
+	public void apiAuthenticationExceptionHandler_shouldNotAddWwwAuthenticateHeaderIfDisabled() throws Exception {
+		Context.logout();
+		request.addHeader("Disable-WWW-Authenticate", "true");
+
+		controller.apiAuthenticationExceptionHandler(new APIAuthenticationException(), request, response);
+
+		assertNull(response.getHeader("WWW-Authenticate"));
+	}
+
 	/**
 	 * @verifies return forbidden if logged in
 	 * @see BaseRestController#apiAuthenticationExceptionHandler(Exception,
@@ -83,26 +105,26 @@ public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
 	@Test
 	public void apiAuthenticationExceptionHandler_shouldReturnForbiddenIfLoggedIn() throws Exception {
 		controller.apiAuthenticationExceptionHandler(new APIAuthenticationException(), request, response);
-		
+
 		assertThat(response.getStatus(), is(HttpServletResponse.SC_FORBIDDEN));
 	}
-	
+
 	@Test
 	public void validationException_shouldReturnBadRequestResponse() throws Exception {
 		Errors ex = new BindException(new Person(), "");
 		ex.reject("error.message");
-		
+
 		SimpleObject responseSimpleObject = controller.validationExceptionHandler(new ValidationException(ex), request,
 		    response);
 		assertThat(response.getStatus(), is(HttpServletResponse.SC_BAD_REQUEST));
-		
+
 		SimpleObject errors = (SimpleObject) responseSimpleObject.get("error");
 		Assert.assertEquals("webservices.rest.error.invalid.submission", errors.get("code"));
 	}
-	
+
 	@Test
 	public void handleException_shouldLogUnannotatedAsErrors() throws Exception {
-		
+
 		String message = "ErrorMessage";
 		Exception ex = new Exception(message);
 		controller.handleException(ex, request, response);
@@ -110,29 +132,57 @@ public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
 		verify(spyOnLog).error(message, ex);
 
 	}
-	
+
 	@Test
 	public void handleException_shouldLog500AndAboveAsErrors() throws Exception {
 		String message = "ErrorMessage";
 		Exception ex = new GenericRestException(message);
-		
+
 		controller.handleException(ex, request, response);
 
 		verify(spyOnLog).error(message, ex);
 
 	}
-	
+
 	@Test
 	public void handleException_shouldLogBelow500AsInfo() throws Exception {
-		
+
 		String message = "ErrorMessage";
 		Exception ex = new IllegalPropertyException(message);
-		
+
 		controller.handleException(ex, request, response);
 
 		verify(spyOnLog).info(message, ex);
 	}
-	
+
+	@Test
+	public void handleException_shouldReturnMethodNotAllowedForUnsupportedMethod() throws Exception {
+		controller.handleException(new HttpRequestMethodNotSupportedException("POST"), request, response);
+
+		assertThat(response.getStatus(), is(HttpServletResponse.SC_METHOD_NOT_ALLOWED));
+	}
+
+	@Test
+	public void handleException_shouldDelegateNestedAuthenticationException() throws Exception {
+		Context.logout();
+
+		controller.handleException(new RuntimeException(new APIAuthenticationException()), request, response);
+
+		assertThat(response.getStatus(), is(HttpServletResponse.SC_UNAUTHORIZED));
+	}
+
+	@Test
+	public void handleException_shouldReturnErrorResponseBody() throws Exception {
+		String message = "ErrorMessage";
+
+		SimpleObject responseSimpleObject = controller.handleException(new GenericRestException(message), request, response);
+
+		LinkedHashMap errors = (LinkedHashMap) responseSimpleObject.get("error");
+		Assert.assertEquals("[" + message + "]", errors.get("message"));
+		Assert.assertTrue(errors.containsKey("code"));
+		Assert.assertTrue(errors.containsKey("detail"));
+	}
+
 	@Test
 	public void handleConversionException_shouldLogConversionErrorAsInfo() throws Exception {
 		String message = "conversion error";
@@ -142,7 +192,7 @@ public class BaseRestControllerTest extends BaseModuleWebContextSensitiveTest {
 		LinkedHashMap errors = (LinkedHashMap) responseSimpleObject.get("error");
 		Assert.assertEquals("[" + message + "]", errors.get("message"));
 	}
-	
+
 	@Test
 	public void httpMessageNotReadableExceptionHandler_shouldReturnBadRequestIfEmptyBody() throws Exception {
 		controller.httpMessageNotReadableExceptionHandler(new HttpMessageNotReadableException(""), request, response);

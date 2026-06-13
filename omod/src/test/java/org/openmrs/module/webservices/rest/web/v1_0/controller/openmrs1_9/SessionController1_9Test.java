@@ -18,6 +18,7 @@ import org.openmrs.GlobalProperty;
 import org.openmrs.Location;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.util.OpenmrsConstants;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -31,31 +32,31 @@ import java.util.List;
 import java.util.Locale;
 
 public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest {
-	
+
 	private static final String SESSION_ID = "test-session-id";
-	
+
 	private static final String UNKNOWN_LOCATION_UUID = "8d6c993e-c2cc-11de-8d13-0010c6dffd0f"; // Unknown Location
-	
+
 	private static final String XANADU_UUID = "9356400c-a5a2-4532-8f2b-2361b3446eb8"; // Xanadu
-	
+
 	private SessionController1_9 controller;
-	
+
 	private HttpServletRequest hsr;
-	
+
 	@Before
 	public void before() {
 		controller = Context.getRegisteredComponents(SessionController1_9.class).iterator().next(); // should only be 1
 		MockHttpServletRequest mockHsr = new MockHttpServletRequest();
 		mockHsr.setSession(new MockHttpSession(new MockServletContext(), SESSION_ID));
 		hsr = mockHsr;
-		
+
 		Context.getAdministrationService().saveGlobalProperty(
 		    new GlobalProperty(OpenmrsConstants.GLOBAL_PROPERTY_LOCALE_ALLOWED_LIST, "en_GB, sp, fr"));
 		Context.getUserContext().setLocation(Context.getLocationService().getLocationByUuid(UNKNOWN_LOCATION_UUID));
 	}
-	
+
 	/**
-	 * @see SessionController1_9#delete(HttpServletRequest) 
+	 * @see SessionController1_9#delete(HttpServletRequest)
 	 * @verifies log the client out
 	 */
 	@Test
@@ -65,7 +66,7 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertFalse(Context.isAuthenticated());
 		Assert.assertNull(hsr.getSession(false));
 	}
-	
+
 	/**
 	 * @see SessionController1_9#get()
 	 * @verifies return the session id if the user is authenticated
@@ -86,6 +87,18 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 	}
 
 	@Test
+	public void get_shouldReturnAuthenticatedSessionResponseShape() throws Exception {
+		SimpleObject session = (SimpleObject) controller.get();
+
+		Assert.assertEquals(Boolean.TRUE, session.get("authenticated"));
+		Assert.assertNotNull(session.get("locale"));
+		Assert.assertNotNull(session.get("allowedLocales"));
+		Assert.assertNotNull(session.get("user"));
+		Assert.assertNotNull(session.get("sessionLocation"));
+		Assert.assertNotNull(session.get("currentProvider"));
+	}
+
+	@Test
 	public void get_shouldReturnLocaleInfoIfTheUserIsNotAuthenticated() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         Assert.assertTrue(Context.isAuthenticated());
 
@@ -100,7 +113,21 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertArrayEquals(Context.getAdministrationService().getAllowedLocales().toArray(),
 				((List<Locale>) PropertyUtils.getProperty(ret, "allowedLocales")).toArray());
 	}
-	
+
+	@Test
+	public void get_shouldReturnUnauthenticatedSessionResponseShape() throws Exception {
+		controller.delete(hsr);
+
+		SimpleObject session = (SimpleObject) controller.get();
+
+		Assert.assertEquals(Boolean.FALSE, session.get("authenticated"));
+		Assert.assertNotNull(session.get("locale"));
+		Assert.assertNotNull(session.get("allowedLocales"));
+		Assert.assertFalse(session.containsKey("user"));
+		Assert.assertFalse(session.containsKey("sessionLocation"));
+		Assert.assertFalse(session.containsKey("currentProvider"));
+	}
+
 	@Test
 	public void get_shouldReturnLocaleInfoIfTheUserIsAuthenticated() throws Exception {
 		Assert.assertTrue(Context.isAuthenticated());
@@ -109,7 +136,7 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertArrayEquals(Context.getAdministrationService().getAllowedLocales().toArray(),
 		    ((List<Locale>) PropertyUtils.getProperty(ret, "allowedLocales")).toArray());
 	}
-	
+
 	@Test
 	public void get_shouldReturnLocationIfTheUserIsAuthenticated() throws Exception {
 		Assert.assertTrue(Context.isAuthenticated());
@@ -140,7 +167,7 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertNotNull(currentProvider);
 		Assert.assertTrue(currentProvider.toString().contains("Super User"));
 	}
-	
+
 	@Test
 	public void post_shouldSetTheUserLocale() throws Exception {
 		Locale newLocale = new Locale("sp");
@@ -152,21 +179,21 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertArrayEquals(Context.getAdministrationService().getAllowedLocales().toArray(),
 				((List<Locale>) PropertyUtils.getProperty(ret, "allowedLocales")).toArray());
 	}
-	
+
 	@Test(expected = APIException.class)
 	public void post_shouldFailWhenSettingIllegalLocale() throws Exception {
 		String newLocale = "fOOb@r:";
 		String content = "{\"locale\":\"" + newLocale + "\"}";
 		controller.post(hsr, new ObjectMapper().readValue(content, HashMap.class));
 	}
-	
+
 	@Test(expected = APIException.class)
 	public void post_shouldFailWhenSettingDisallowedLocale() throws Exception {
 		String newLocale = "km_KH";
 		String content = "{\"locale\":\"" + newLocale + "\"}";
 		controller.post(hsr, new ObjectMapper().readValue(content, HashMap.class));
 	}
-	
+
 	@Test
 	public void post_shouldSetTheSessionLocation() throws Exception {
 		String content = "{\"sessionLocation\":\"" + XANADU_UUID + "\"}";
@@ -178,7 +205,7 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 		Assert.assertTrue(responseLoc.toString() + " should contain 'display=Xanadu'",
 				responseLoc.toString().contains("display=Xanadu"));
 	}
-	
+
 	@Test(expected = APIException.class)
 	public void post_shouldFailWhenSettingNonexistantLocation() throws Exception {
 		String content = "{\"sessionLocation\":\"fake-nonexistant-uuid\"}";
