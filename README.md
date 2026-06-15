@@ -38,128 +38,57 @@ the tests.
 
 ## Developer Documentation
 
-### OTAP omgevingen en CI/CD
+### OTAP Docker Compose
 
-Deze repository gebruikt drie gescheiden deploymentomgevingen:
+This repository can run the REST module inside a fixed OpenMRS Reference Application runtime. The OTAP Docker Compose files use the official OpenMRS Reference Application `3.6.0` images and build a small backend overlay that replaces the bundled REST module with this repository's locally built `.omod`.
 
-| Omgeving | GitHub Environment | Compose-bestand | Doel | Branches |
-| --- | --- | --- | --- | --- |
-| Dev | `Dev` | `docker-compose.dev.yml` | Lokale/dev-validatie met snelle module-build. | `dev` |
-| Test | `Test` | `docker-compose.test.yml` | Integratie- en acceptatievalidatie met testconfiguratie. | `acceptance`, `devprodomgeving` |
-| Prod | `Prod` | `docker-compose.prod.yml` | Productie-release met verplichte secrets en approval gate. | `master` |
+For a complete local setup guide for team members, see [`docs/setup.md`](docs/setup.md).
 
-De GitHub Actions workflow staat in `.github/workflows/ci-cd-environments.yml`. Pull requests voeren policy checks en Maven build/tests uit. Deployments lopen via GitHub Environments, zodat configuratie, secrets en approval gates per omgeving gescheiden blijven.
-
-#### Docker Compose
-
-Start een specifieke omgeving met Docker Compose:
-
-```bash
-docker compose -f docker-compose.dev.yml up --build
-docker compose -f docker-compose.test.yml up --build
-docker compose -f docker-compose.prod.yml up --build
-```
-
-Dev gebruikt poort `8080`; Test gebruikt standaard poort `8081`; Prod gebruikt standaard poort `8080`. Voor Test en Prod kan de hostpoort worden aangepast met `OPENMRS_HTTP_PORT`.
-
-De compose-bestanden bevatten een `module-builder` service. Die bouwt de `.omod` met Maven en kopieert het resultaat naar `docker/modules/`. De OpenMRS-container mount deze map als `/openmrs/data/modules`, zodat de gebouwde REST-module in de omgeving geladen kan worden. Gegenereerde `.omod` bestanden in `docker/modules/` worden niet gecommit.
-
-Voor Prod moeten secrets expliciet als environment variables worden gezet voordat de omgeving start:
-
-```bash
-export OMRS_DB_PASSWORD="change-me"
-export OMRS_DB_ROOT_PASSWORD="change-me-root"
-export OMRS_ADMIN_USER_PASSWORD="change-me-admin"
-docker compose -f docker-compose.prod.yml up --build
-```
-
-#### GitHub Environments
-
-Maak in de repository-instellingen onder `Settings > Environments` de volgende environments aan:
-
-```text
-Dev
-Test
-Prod
-```
-
-Gebruik per GitHub Environment eigen variables en secrets:
-
-| Naam | Type | Gebruik |
+| Environment | Command | URL |
 | --- | --- | --- |
-| `OPENMRS_BASE_URL` | Environment variable | Basis-URL van de OpenMRS instance voor die omgeving. |
-| `DEPLOY_ENABLED` | Environment variable | `true` activeert de echte deploystap nadat het deploycommando is gekoppeld. |
-| `DEPLOY_TOKEN` | Environment secret | Token of credential voor deployment naar alleen die omgeving. |
-| `OPENMRS_TEST_USERNAME` | Environment secret | Gebruiker voor live API/Postman tests in `Test`. |
-| `OPENMRS_TEST_PASSWORD` | Environment secret | Wachtwoord voor live API/Postman tests in `Test`. |
+| Dev | `docker compose -f docker-compose.dev.yml up --build -d` | `http://localhost:8080/openmrs/spa` |
+| Test | `docker compose -f docker-compose.test.yml up --build -d` | `http://localhost:8081/openmrs/spa` |
+| Prod | `docker compose -f docker-compose.prod.yml up --build -d` | `http://localhost:8082/openmrs/spa` |
 
-Secrets worden niet als repository-wide secrets gebruikt. Hetzelfde secret-veld mag in `Dev`, `Test` en `Prod` dezelfde naam hebben, maar GitHub bewaart en verstrekt de waarden per environment gescheiden. Lokale `.env`-bestanden en secret-bestanden mogen niet worden gecommit; de workflow blokkeert dit.
+Build the local REST module before starting an environment:
 
-#### Protection rules
-
-Configureer de volgende protection rules in GitHub:
-
-| Environment | Protection |
-| --- | --- |
-| `Dev` | Geen verplichte reviewer nodig; deployment branches beperken tot `dev`. |
-| `Test` | Optioneel required reviewers aan; deployment branches beperken tot `acceptance` en `devprodomgeving`. |
-| `Prod` | Required reviewers aan met minimaal 1 approver; deployment branches beperken tot `master`; self-review uit waar beschikbaar. |
-
-De productiejob controleert daarnaast zelf dat de deployment vanaf `master` komt. Daardoor kan een handmatige `workflow_dispatch` vanaf een andere branch niet naar Prod deployen.
-
-#### NEN-7510 controls voor CI/CD
-
-De CI/CD-inrichting ondersteunt de volgende NEN-7510-maatregelen:
-
-| Control | Inrichting |
-| --- | --- |
-| Scheiding van omgevingen | Aparte Docker Compose bestanden en GitHub Environments `Dev`, `Test` en `Prod` met eigen variables, secrets en branch policies. |
-| Least privilege | De workflow gebruikt alleen `contents: read` en krijgt secrets pas in de environment-job. |
-| Vier-ogenprincipe | Environment approvals zijn verplicht voor `Prod` en optioneel voor `Test`. |
-| Traceerbaarheid | GitHub Actions bewaart per run commit, actor, approval en artifact. |
-| Wijzigingsbeheer | Productie is beperkt tot `master`; pull requests draaien eerst build en policy checks. |
-| Bescherming van vertrouwelijke gegevens | Geen secrets in code, geen repository-wide deployment secrets, en policy check tegen committed `.env`/secret-bestanden. |
-| Scheiding testdata/productiedata | Testdata blijft onder `src/test/resources`; de workflow controleert dat deploybare `.omod` artifacts geen testfixtures bevatten. |
-| Herleidbare artifacts | De `.omod` wordt als workflow artifact opgeslagen met beperkte retentie. |
-
-#### Voorkomen dat testdata in productie komt
-
-Testdata staat alleen in testresources zoals `omod/src/test/resources`. Maven gebruikt deze resources voor tests, maar ze horen niet in het deploybare `.omod` artifact. De workflow inspecteert elk gebouwd `.omod` artifact en faalt als bekende testfixture-patronen zoals `testDataset`, `_testData`, `create_patient.json` of `update_patient.json` toch in het artifact zitten.
-
-Prod gebruikt daarnaast alleen de `Prod` environment, de `Prod` secrets en de `master` branch. Testdeployments gebruiken de `Test` environment en kunnen niet bij productie-secrets.
-
-#### Nieuwe ontwikkelaar
-
-1. Clone de repository:
-
-```
-git clone https://github.com/AvansBitByBit/openmrs-module-webservices.rest
-cd openmrs-module-webservices.rest
+```bash
+docker compose -f docker-compose.dev.yml --profile build-module run --rm module-builder
 ```
 
-2. Installeer Java 8 en Maven.
+Prod requires explicit database secrets before startup:
 
-3. Build lokaal:
-
-```
-mvn clean install
-```
-
-4. Run integration tests tegen een lokale OpenMRS server:
-
-```
-mvn clean verify -Pintegration-tests -DtestUrl=http://admin:Admin123@localhost:8080/openmrs
+```bash
+export OMRS_DB_PASSWORD="replace-me"
+export MYSQL_ROOT_PASSWORD="replace-me-root"
+docker compose -f docker-compose.prod.yml up --build
 ```
 
-5. Maak voor lokale configuratie alleen lokale, niet-gecommitte bestanden aan. Commit geen `.env`, tokens, wachtwoorden of exportbestanden met zorgdata.
+How it works:
 
-6. Start indien nodig een lokale omgeving:
+1. `module-builder` builds this repository's `.omod` into `docker/modules/`.
+2. The backend overlay starts from `openmrs/openmrs-reference-application-3-backend:3.6.0`.
+3. The overlay removes the bundled `webservices.rest` OMOD and copies in the local one.
+4. The overlay keeps the normal RefApp modules but removes the OCL startup import config because that import path makes local OTAP first boot unreliable.
+5. OpenMRS starts with the normal RefApp backend modules, `referencedemodata`, and a separate database volume per environment.
+6. The REST API is available under `/openmrs/ws/rest`.
 
+Readiness check:
+
+```bash
+curl http://localhost:8080/openmrs/ws/rest/v1/session
 ```
-docker compose -f docker-compose.dev.yml up --build
-```
 
-7. Werk via pull requests. Een merge naar `dev` kan naar `Dev`; een merge naar `acceptance` of `devprodomgeving` kan de `Test` gate gebruiken; productie loopt alleen via `master` en vereist environment approval in `Prod`.
+CI still builds and validates this module from source.
+
+For a teacher demo script, expected questions and security/compliance talking points, see
+[`docs/otap-demo-guide.md`](docs/otap-demo-guide.md).
+For a step-by-step explanation of how the module is used inside OpenMRS, see
+[`docs/module-gebruiken-in-openmrs.md`](docs/module-gebruiken-in-openmrs.md).
+
+The GitHub Actions workflow also has an optional manual smoke test. Run **CI/CD environments** with
+`run_compose_smoke_test=true` to build the Dev stack in CI and verify
+`/openmrs/ws/rest/v1/session`.
 
 ### Integration Tests
 

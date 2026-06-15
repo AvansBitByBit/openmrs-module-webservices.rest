@@ -1,60 +1,95 @@
 services:
   module-builder:
     image: maven:3.9.9-eclipse-temurin-8
+    profiles: ["build-module"]
     working_dir: /workspace
-    command: >
-      sh -c "mvn --batch-mode --no-transfer-progress clean verify
-      && mkdir -p docker/modules
-      && cp omod/target/*.omod docker/modules/"
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        rm -rf /tmp/webservices-rest-build
+        mkdir -p /tmp/webservices-rest-build
+        tar --exclude='./target' --exclude='./*/target' --exclude='./docker/modules/*.omod' -cf - . | tar -C /tmp/webservices-rest-build -xf -
+        cd /tmp/webservices-rest-build
+        mvn --batch-mode --no-transfer-progress clean package -Dmaven.test.skip=true -DskipTests -Dlicense.skip=true
+        mkdir -p /workspace/docker/modules
+        rm -f /workspace/docker/modules/webservices.rest-*.omod
+        cp omod/target/webservices.rest-*.omod /workspace/docker/modules/
     volumes:
       - .:/workspace
       - maven-cache-prod:/root/.m2
 
+  gateway:
+    image: openmrs/openmrs-reference-application-3-gateway:3.6.0
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "${OPENMRS_HTTP_PORT:-8082}:80"
+
+  frontend:
+    image: openmrs/openmrs-reference-application-3-frontend:3.6.0
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      SPA_PATH: /openmrs/spa
+      API_URL: /openmrs
+      SPA_CONFIG_URLS: /openmrs/spa/config-core_demo.json
+      SPA_DEFAULT_LOCALE: en
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    image: openmrs-webservices-rest-backend:3.6.0-local
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      OMRS_CONFIG_MODULE_WEB_ADMIN: "false"
+      OMRS_CONFIG_AUTO_UPDATE_DATABASE: "true"
+      OMRS_CONFIG_CREATE_TABLES: "true"
+      OMRS_CONFIG_CONNECTION_SERVER: db
+      OMRS_CONFIG_CONNECTION_DATABASE: ${OMRS_DB_NAME:-openmrs_prod}
+      OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
+      OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:?Set OMRS_DB_PASSWORD before starting prod}
+      OMRS_EXTRA_INITIALIZER_STARTUP_LOAD: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 300s
+    volumes:
+      - openmrs-data-prod:/openmrs/data
+
   db:
     image: mariadb:10.11.7
-    command: "mariadbd --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
+    restart: unless-stopped
+    command: "mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
     environment:
-      MARIADB_DATABASE: ${OMRS_DB_NAME:-openmrs_prod}
-      MARIADB_USER: ${OMRS_DB_USERNAME:-openmrs}
-      MARIADB_PASSWORD: ${OMRS_DB_PASSWORD:?Set OMRS_DB_PASSWORD before starting prod}
-      MARIADB_ROOT_PASSWORD: ${OMRS_DB_ROOT_PASSWORD:?Set OMRS_DB_ROOT_PASSWORD before starting prod}
+      MYSQL_DATABASE: ${OMRS_DB_NAME:-openmrs_prod}
+      MYSQL_USER: ${OMRS_DB_USER:-openmrs}
+      MYSQL_PASSWORD: ${OMRS_DB_PASSWORD:?Set OMRS_DB_PASSWORD before starting prod}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD before starting prod}
     healthcheck:
-      test: "mariadb --user=$${MARIADB_USER} --password=$${MARIADB_PASSWORD} --execute \"SHOW DATABASES;\""
+      test: "mysql --user=$${MYSQL_USER} --password=$${MYSQL_PASSWORD} --execute \"SHOW DATABASES;\""
       interval: 10s
       timeout: 5s
       retries: 12
     volumes:
       - openmrs-db-prod:/var/lib/mysql
 
-  openmrs:
-    image: openmrs/openmrs-core:2.8.6
-    depends_on:
-      module-builder:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
-    ports:
-      - "${OPENMRS_HTTP_PORT:-8080}:8080"
-    environment:
-      OMRS_DB: mariadb
-      OMRS_DB_HOSTNAME: db
-      OMRS_DB_NAME: ${OMRS_DB_NAME:-openmrs_prod}
-      OMRS_DB_USERNAME: ${OMRS_DB_USERNAME:-openmrs}
-      OMRS_DB_PASSWORD: ${OMRS_DB_PASSWORD:?Set OMRS_DB_PASSWORD before starting prod}
-      OMRS_ADMIN_USER_PASSWORD: ${OMRS_ADMIN_USER_PASSWORD:?Set OMRS_ADMIN_USER_PASSWORD before starting prod}
-      OMRS_ADMIN_PASSWORD_LOCKED: "true"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs/health/alive"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 90s
-    volumes:
-      - openmrs-data-prod:/openmrs/data
-      - ./docker/modules:/openmrs/data/modules:ro
-    restart: unless-stopped
-
 volumes:
   maven-cache-prod:
-  openmrs-db-prod:
   openmrs-data-prod:
+  openmrs-db-prod:
