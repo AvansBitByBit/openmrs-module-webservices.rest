@@ -1,0 +1,91 @@
+services:
+  module-builder:
+    image: maven:3.9.9-eclipse-temurin-8
+    profiles: ["build-module"]
+    working_dir: /workspace
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        rm -rf /tmp/webservices-rest-build
+        mkdir -p /tmp/webservices-rest-build
+        tar --exclude='./target' --exclude='./*/target' --exclude='./docker/modules/*.omod' -cf - . | tar -C /tmp/webservices-rest-build -xf -
+        cd /tmp/webservices-rest-build
+        mvn --batch-mode --no-transfer-progress clean package -Dmaven.test.skip=true -DskipTests -Dlicense.skip=true
+        mkdir -p /workspace/docker/modules
+        rm -f /workspace/docker/modules/webservices.rest-*.omod
+        cp omod/target/webservices.rest-*.omod /workspace/docker/modules/
+    volumes:
+      - .:/workspace
+      - maven-cache-dev:/root/.m2
+
+  gateway:
+    image: openmrs/openmrs-reference-application-3-gateway:3.6.0
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "${OPENMRS_HTTP_PORT:-8080}:80"
+
+  frontend:
+    image: openmrs/openmrs-reference-application-3-frontend:3.6.0
+    depends_on:
+      - backend
+    environment:
+      SPA_PATH: /openmrs/spa
+      API_URL: /openmrs
+      SPA_CONFIG_URLS: /openmrs/spa/config-core_demo.json
+      SPA_DEFAULT_LOCALE: en
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    image: openmrs-webservices-rest-backend:3.6.0-local
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
+      OMRS_CONFIG_AUTO_UPDATE_DATABASE: "true"
+      OMRS_CONFIG_CREATE_TABLES: "true"
+      OMRS_CONFIG_CONNECTION_SERVER: db
+      OMRS_CONFIG_CONNECTION_DATABASE: openmrs_dev
+      OMRS_CONFIG_CONNECTION_USERNAME: openmrs
+      OMRS_CONFIG_CONNECTION_PASSWORD: openmrs
+      OMRS_EXTRA_INITIALIZER_STARTUP_LOAD: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 300s
+    volumes:
+      - openmrs-data-dev:/openmrs/data
+
+  db:
+    image: mariadb:10.11.7
+    command: "mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci"
+    environment:
+      MYSQL_DATABASE: openmrs_dev
+      MYSQL_USER: openmrs
+      MYSQL_PASSWORD: openmrs
+      MYSQL_ROOT_PASSWORD: openmrs
+    healthcheck:
+      test: "mysql --user=openmrs --password=openmrs --execute \"SHOW DATABASES;\""
+      interval: 3s
+      timeout: 1s
+      retries: 10
+    volumes:
+      - openmrs-db-dev:/var/lib/mysql
+
+volumes:
+  maven-cache-dev:
+  openmrs-data-dev:
+  openmrs-db-dev:
