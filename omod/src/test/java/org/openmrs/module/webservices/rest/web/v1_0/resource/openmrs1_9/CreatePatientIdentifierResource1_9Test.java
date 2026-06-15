@@ -36,32 +36,35 @@ public class CreatePatientIdentifierResource1_9Test extends BaseModuleWebContext
 	@Test
 	public void shouldCreatePatientIdentifier_WhenTypeIsSpecifiedByUuid() throws Exception {
 		
-		String personAttributeJson = "{" + "            \"identifier\": \"101-6\"," + "            \"identifierType\": {"
-		        + "              \"uuid\" : \"1a339fe9-38bc-4ab3-b180-320988c0b968\"" + "            },"
+		String identifier = "REST-UUID-IDENTIFIER";
+		String personAttributeJson = "{" + "            \"identifier\": \"" + identifier + "\","
+		        + "            \"identifierType\": {" + "              \"uuid\" : \"2f470aa8-1d73-43b7-81b5-01f0c0dfa53c\""
+		        + "            },"
 		        + "            \"location\" : {" + "              \"uuid\" : \"8d6c993e-c2cc-11de-8d13-0010c6dffd0f\""
-		        + "            }," + "            \"preferred\": true" + "        }";
+		        + "            }," + "            \"preferred\": false" + "        }";
 		
 		SimpleObject personAttributeSimpleObject = new SimpleObject();
 		personAttributeSimpleObject.putAll(new ObjectMapper().readValue(personAttributeJson, HashMap.class));
 		
 		SimpleObject created = (SimpleObject) resource.create("da7f524f-27ce-4bb2-86d6-6d1d05312bd5",
 		    personAttributeSimpleObject, new RequestContext());
-		Assert.assertEquals("101-6", created.get("identifier"));
+		Assert.assertEquals(identifier, created.get("identifier"));
 	}
 	
 	@Test
 	public void shouldCreatePatientIdentifier_WhenTypeIsSpecifiedByName() throws Exception {
-		String personAttributeJson = "{" + "            \"identifier\": \"101-6\"," + "            \"identifierType\": {"
-		        + "              \"name\" : \"OpenMRS Identification Number\"" + "            },"
+		String identifier = "REST-NAME-IDENTIFIER";
+		String personAttributeJson = "{" + "            \"identifier\": \"" + identifier + "\","
+		        + "            \"identifierType\": {" + "              \"name\" : \"Old Identification Number\"" + "            },"
 		        + "            \"location\" : {" + "              \"uuid\" : \"8d6c993e-c2cc-11de-8d13-0010c6dffd0f\""
-		        + "            }," + "            \"preferred\": true" + "        }";
+		        + "            }," + "            \"preferred\": false" + "        }";
 		
 		SimpleObject personAttributeSimpleObject = new SimpleObject();
 		personAttributeSimpleObject.putAll(new ObjectMapper().readValue(personAttributeJson, HashMap.class));
 		
 		SimpleObject created = (SimpleObject) resource.create("da7f524f-27ce-4bb2-86d6-6d1d05312bd5",
 		    personAttributeSimpleObject, new RequestContext());
-		Assert.assertEquals("101-6", created.get("identifier"));
+		Assert.assertEquals(identifier, created.get("identifier"));
 	}
 	
 }
