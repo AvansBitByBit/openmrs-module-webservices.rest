@@ -1,0 +1,574 @@
+{
+	"info": {
+		"_postman_id": "04942ee6-f658-4e36-ae13-5ca1a0226f46",
+		"name": "OpenMRS REST Web Services Tests",
+		"description": "Newman-ready smoke and contract checks for the OpenMRS REST Web Services module.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "username",
+				"value": "{{username}}",
+				"type": "string"
+			},
+			{
+				"key": "password",
+				"value": "{{password}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/openmrs"
+		},
+		{
+			"key": "username",
+			"value": "admin"
+		},
+		{
+			"key": "password",
+			"value": "Admin123"
+		},
+		{
+			"key": "createdLocationUuid",
+			"value": ""
+		},
+		{
+			"key": "testLocationName",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Session should be unauthenticated without credentials",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/session",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"session"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"session is not authenticated\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.authenticated).to.eql(false);",
+							"    pm.expect(json.locale).to.exist;",
+							"    pm.expect(json.allowedLocales).to.be.an(\"array\");",
+							"    pm.expect(json.user).to.be.undefined;",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Session should authenticate configured user",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/session",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"session"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"session is authenticated\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.authenticated).to.eql(true);",
+							"    pm.expect(json.user).to.have.property(\"uuid\");",
+							"    pm.expect(json.user).to.have.property(\"username\");",
+							"    pm.expect(json.allowedLocales).to.be.an(\"array\");",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Patient search should return default representation shape",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/patient?q=Horatio",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"patient"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "Horatio"
+						}
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"patient search response has results array\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.results).to.be.an(\"array\");",
+							"    if (json.results.length > 0) {",
+							"        pm.expect(json.results[0]).to.have.property(\"uuid\");",
+							"        pm.expect(json.results[0]).to.have.property(\"display\");",
+							"    }",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Patient search should return full representation shape",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/patient?q=Horatio&v=full",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"patient"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "Horatio"
+						},
+						{
+							"key": "v",
+							"value": "full"
+						}
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"full patient search response is readable\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.results).to.be.an(\"array\");",
+							"    if (json.results.length > 0) {",
+							"        pm.expect(json.results[0]).to.have.property(\"uuid\");",
+							"        pm.expect(json.results[0]).to.have.property(\"person\");",
+							"    }",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Create metadata location",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.collectionVariables.set(\"testLocationName\", \"Postman Newman Location \" + Date.now());"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 201 Created\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"created location has expected fields\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.uuid).to.be.a(\"string\").and.not.empty;",
+							"    pm.expect(json.name).to.eql(pm.collectionVariables.get(\"testLocationName\"));",
+							"    pm.collectionVariables.set(\"createdLocationUuid\", json.uuid);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"{{testLocationName}}\",\n  \"description\": \"Created by Newman\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location"
+					]
+				}
+			}
+		},
+		{
+			"name": "Read created location",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location/{{createdLocationUuid}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location",
+						"{{createdLocationUuid}}"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"created location can be read\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.uuid).to.eql(pm.collectionVariables.get(\"createdLocationUuid\"));",
+							"    pm.expect(json.name).to.eql(pm.collectionVariables.get(\"testLocationName\"));",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Update created location",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"{{testLocationName}} Updated\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location/{{createdLocationUuid}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location",
+						"{{createdLocationUuid}}"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns success for update\", function () {",
+							"    pm.expect([200, 204]).to.include(pm.response.code);",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Search updated location",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location?q={{testLocationName}}%20Updated",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "{{testLocationName}} Updated"
+						}
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"updated location appears in search results\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.results).to.be.an(\"array\").that.is.not.empty;",
+							"    pm.expect(json.results[0].uuid).to.eql(pm.collectionVariables.get(\"createdLocationUuid\"));",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Retire created location",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location/{{createdLocationUuid}}?reason=Newman%20cleanup",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location",
+						"{{createdLocationUuid}}"
+					],
+					"query": [
+						{
+							"key": "reason",
+							"value": "Newman cleanup"
+						}
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns success for retire\", function () {",
+							"    pm.expect([200, 204]).to.include(pm.response.code);",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Purge created location",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location/{{createdLocationUuid}}?purge=true",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location",
+						"{{createdLocationUuid}}"
+					],
+					"query": [
+						{
+							"key": "purge",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns success for purge\", function () {",
+							"    pm.expect([200, 204]).to.include(pm.response.code);",
+							"});",
+							"",
+							"pm.collectionVariables.set(\"createdLocationUuid\", \"\");"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Invalid location uuid should return not found",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location/not-a-real-location-uuid",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location",
+						"not-a-real-location-uuid"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 404 Not Found\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"not found response has error body\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.error).to.exist;",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Malformed location json should return bad request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/ws/rest/v1/location",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ws",
+						"rest",
+						"v1",
+						"location"
+					]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"returns 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"bad request response has error body\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json.error).to.exist;",
+							"});"
+						]
+					}
+				}
+			]
+		}
+	]
+}

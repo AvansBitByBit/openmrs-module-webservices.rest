@@ -38,6 +38,58 @@ the tests.
 
 ## Developer Documentation
 
+### OTAP Docker Compose
+
+This repository can run the REST module inside a fixed OpenMRS Reference Application runtime. The OTAP Docker Compose files use the official OpenMRS Reference Application `3.6.0` images and build a small backend overlay that replaces the bundled REST module with this repository's locally built `.omod`.
+
+For a complete local setup guide for team members, see [`docs/setup.md`](docs/setup.md).
+
+| Environment | Command | URL |
+| --- | --- | --- |
+| Dev | `docker compose -f docker-compose.dev.yml up --build -d` | `http://localhost:8080/openmrs/spa` |
+| Test | `docker compose -f docker-compose.test.yml up --build -d` | `http://localhost:8081/openmrs/spa` |
+| Prod | `docker compose -f docker-compose.prod.yml up --build -d` | `http://localhost:8082/openmrs/spa` |
+
+Build the local REST module before starting an environment:
+
+```bash
+docker compose -f docker-compose.dev.yml --profile build-module run --rm module-builder
+```
+
+Prod requires explicit database secrets before startup:
+
+```bash
+export OMRS_DB_PASSWORD="replace-me"
+export MYSQL_ROOT_PASSWORD="replace-me-root"
+docker compose -f docker-compose.prod.yml up --build
+```
+
+How it works:
+
+1. `module-builder` builds this repository's `.omod` into `docker/modules/`.
+2. The backend overlay starts from `openmrs/openmrs-reference-application-3-backend:3.6.0`.
+3. The overlay removes the bundled `webservices.rest` OMOD and copies in the local one.
+4. The overlay keeps the normal RefApp modules but removes the OCL startup import config because that import path makes local OTAP first boot unreliable.
+5. OpenMRS starts with the normal RefApp backend modules, `referencedemodata`, and a separate database volume per environment.
+6. The REST API is available under `/openmrs/ws/rest`.
+
+Readiness check:
+
+```bash
+curl http://localhost:8080/openmrs/ws/rest/v1/session
+```
+
+CI still builds and validates this module from source.
+
+For a teacher demo script, expected questions and security/compliance talking points, see
+[`docs/otap-demo-guide.md`](docs/otap-demo-guide.md).
+For a step-by-step explanation of how the module is used inside OpenMRS, see
+[`docs/module-gebruiken-in-openmrs.md`](docs/module-gebruiken-in-openmrs.md).
+
+The GitHub Actions workflow also has an optional manual smoke test. Run **CI/CD environments** with
+`run_compose_smoke_test=true` to build the Dev stack in CI and verify
+`/openmrs/ws/rest/v1/session`.
+
 ### Integration Tests
 
 Integration tests can be found in the integration-tests directory. They are written with JUnit and Rest-Assured.
