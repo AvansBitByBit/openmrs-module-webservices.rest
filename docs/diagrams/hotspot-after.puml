@@ -1,0 +1,32 @@
+@startuml
+title Hotspot after: opgesplitste ConversionUtil conversie
+
+class ConversionUtil {
+  +convert(object: Object, toType: Type): Object
+  -NO_CONVERSION: Object
+  -getRawClass(toType: Type): Class
+  -convertToCollectionOrArray(object, toType, toClass): Object
+  -convertToArray(input, targetElementType): Object
+  -createCollection(toClass): Collection
+  -convertFromString(string, toClass, toType): Object
+  -convertStringToDate(string): Date
+  -convertStringToClass(string, toType): Class
+  -convertUsingValueOf(string, toClass): Object
+  -convertNumber(object, toClass): Object
+}
+
+note right of ConversionUtil
+Na PoC:
+- convert-methode 39 LOC
+- CC 12
+- deelgedrag zit in kleine helpers
+- public API blijft gelijk
+- sentinel scheidt null van geen match
+- regressietests dekken extra branches
+end note
+
+ConversionUtil --> "Converter"
+ConversionUtil --> "ConversionException"
+ConversionUtil --> "DateTimeFormat"
+ConversionUtil --> "Context"
+@enduml

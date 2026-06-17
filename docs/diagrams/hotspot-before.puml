@@ -1,0 +1,26 @@
+@startuml
+title Hotspot before: ConversionUtil.convert(Object, Type)
+
+class ConversionUtil {
+  +convert(object: Object, toType: Type): Object
+}
+
+note right of ConversionUtil
+Baseline convert-methode:
+- 118 LOC
+- CC 23
+- public methode bevat bijna alle beslissingen
+- collectie/array logica
+- string/date/locale/enum/class/valueOf logica
+- map conversie
+- number conversie
+- boolean conversie
+allemaal in 1 methode
+end note
+
+ConversionUtil --> "java.lang.reflect.Type"
+ConversionUtil --> "java.util.Collection"
+ConversionUtil --> "org.openmrs.api.context.Context"
+ConversionUtil --> "Converter"
+ConversionUtil --> "ConversionException"
+@enduml

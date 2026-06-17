@@ -1,0 +1,85 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Rest Web Services                                                  [pom]
+[INFO] Rest Web Services Common OMOD                                      [jar]
+[INFO] Rest Web Services OMOD                                             [jar]
+[INFO] Rest Web Services Integration Tests                                [jar]
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-1: The plugin org.apache.maven.plugins:maven-jar-plugin:4.0.0-beta-1 requires Maven version 4.0.0-beta-3
+[INFO] Latest version of plugin org.apache.maven.plugins:maven-jar-plugin failed compatibility check
+[INFO] Looking for compatible RELEASE version of plugin org.apache.maven.plugins:maven-jar-plugin
+[INFO] Selected plugin org.apache.maven.plugins:maven-jar-plugin:3.5.0
+[WARNING] The POM for org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 is missing, no dependency information available
+[WARNING] Failed to retrieve plugin descriptor for org.eclipse.m2e:lifecycle-mapping:1.0.0: Plugin org.eclipse.m2e:lifecycle-mapping:1.0.0 or one of its dependencies could not be resolved:
+	Could not find artifact org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 in openmrs-repo (https://mavenrepo.openmrs.org/nexus/content/repositories/public)
+	Could not find artifact org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 in central (https://repo.maven.apache.org/maven2)
+
+[INFO] 
+[INFO] ----------------< org.openmrs.module:webservices.rest >-----------------
+[INFO] Building Rest Web Services 3.2.0                                   [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[WARNING] The POM for org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 is missing, no dependency information available
+[WARNING] Failed to retrieve plugin descriptor for org.eclipse.m2e:lifecycle-mapping:1.0.0: Plugin org.eclipse.m2e:lifecycle-mapping:1.0.0 or one of its dependencies could not be resolved:
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://mavenrepo.openmrs.org/nexus/content/repositories/public during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of openmrs-repo has elapsed or updates are forced
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced
+
+[INFO] 
+[INFO] --- pmd:3.28.0:cpd (default-cli) @ webservices.rest ---
+[INFO] Skipping org.apache.maven.plugins:maven-pmd-plugin:3.28.0:cpd report goal
+[INFO] 
+[INFO] ----------< org.openmrs.module:webservices.rest-omod-common >-----------
+[INFO] Building Rest Web Services Common OMOD 3.2.0                       [2/4]
+[INFO]   from omod-common\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] The POM for org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 is missing, no dependency information available
+[WARNING] Failed to retrieve plugin descriptor for org.eclipse.m2e:lifecycle-mapping:1.0.0: Plugin org.eclipse.m2e:lifecycle-mapping:1.0.0 or one of its dependencies could not be resolved:
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://mavenrepo.openmrs.org/nexus/content/repositories/public during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of openmrs-repo has elapsed or updates are forced
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced
+
+[INFO] 
+[INFO] --- pmd:3.28.0:cpd (default-cli) @ webservices.rest-omod-common ---
+[WARNING] Unable to locate Source XRef to link to -- DISABLED
+[INFO] Rendering content with org.apache.maven.skins:maven-fluido-skin:jar:2.0.0-M9 skin
+[INFO] 
+[INFO] --------------< org.openmrs.module:webservices.rest-omod >--------------
+[INFO] Building Rest Web Services OMOD 3.2.0                              [3/4]
+[INFO]   from omod\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] The POM for org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 is missing, no dependency information available
+[WARNING] Failed to retrieve plugin descriptor for org.eclipse.m2e:lifecycle-mapping:1.0.0: Plugin org.eclipse.m2e:lifecycle-mapping:1.0.0 or one of its dependencies could not be resolved:
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://mavenrepo.openmrs.org/nexus/content/repositories/public during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of openmrs-repo has elapsed or updates are forced
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced
+
+[INFO] 
+[INFO] --- pmd:3.28.0:cpd (default-cli) @ webservices.rest-omod ---
+[WARNING] Unable to locate Source XRef to link to -- DISABLED
+[INFO] Rendering content with org.apache.maven.skins:maven-fluido-skin:jar:2.0.0-M9 skin
+[INFO] 
+[INFO] -------< org.openmrs.module:webservices.rest-integration-tests >--------
+[INFO] Building Rest Web Services Integration Tests 3.2.0                 [4/4]
+[INFO]   from integration-tests\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] The POM for org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 is missing, no dependency information available
+[WARNING] Failed to retrieve plugin descriptor for org.eclipse.m2e:lifecycle-mapping:1.0.0: Plugin org.eclipse.m2e:lifecycle-mapping:1.0.0 or one of its dependencies could not be resolved:
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://mavenrepo.openmrs.org/nexus/content/repositories/public during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of openmrs-repo has elapsed or updates are forced
+	org.eclipse.m2e:lifecycle-mapping:jar:1.0.0 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced
+
+[INFO] 
+[INFO] --- pmd:3.28.0:cpd (default-cli) @ webservices.rest-integration-tests ---
+[WARNING] No files to analyze. Check input paths and exclude parameters, use --debug to see file collection traces.
+[INFO] Rendering content with org.apache.maven.skins:maven-fluido-skin:jar:2.0.0-M9 skin
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Rest Web Services 3.2.0:
+[INFO] 
+[INFO] Rest Web Services .................................. SUCCESS [ 15.395 s]
+[INFO] Rest Web Services Common OMOD ...................... SUCCESS [  1.255 s]
+[INFO] Rest Web Services OMOD ............................. SUCCESS [  1.328 s]
+[INFO] Rest Web Services Integration Tests ................ SUCCESS [  0.945 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.186 s
+[INFO] Finished at: 2026-06-18T00:15:14+02:00
+[INFO] ------------------------------------------------------------------------

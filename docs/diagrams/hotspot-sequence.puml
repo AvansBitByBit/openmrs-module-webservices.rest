@@ -1,0 +1,29 @@
+@startuml
+title Flow na PoC: ConversionUtil.convert
+
+actor Test
+participant "ConversionUtil.convert" as Convert
+participant "collection helper" as Collection
+participant "string helper" as StringHelper
+participant "number helper" as NumberHelper
+participant "map converter" as MapConverter
+
+Test -> Convert: convert(object, toType)
+Convert -> Convert: bepaal raw target class
+alt target is collection/array
+  Convert -> Collection: convertToCollectionOrArray(...)
+  Collection --> Convert: converted value
+else object is String
+  Convert -> StringHelper: convertFromString(...)
+  StringHelper --> Convert: converted value or NO_CONVERSION
+else object is Number
+  Convert -> NumberHelper: convertNumber(...)
+  NumberHelper --> Convert: converted value or NO_CONVERSION
+else object is Map
+  Convert -> MapConverter: convertMap(...)
+  MapConverter --> Convert: converted object
+else unsupported
+  Convert -> Test: ConversionException
+end
+Convert --> Test: converted object
+@enduml
