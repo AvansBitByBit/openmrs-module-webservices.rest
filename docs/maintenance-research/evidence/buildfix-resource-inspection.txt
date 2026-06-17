@@ -1,0 +1,9 @@
+
+FullName
+--------
+C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\classes\META-INF\maven\org.op…
+C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\classes\META-INF\maven\org.op…
+C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\classes\config.xml
+C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\classes\messages.properties
+C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\classes\webModuleApplicationC…
+

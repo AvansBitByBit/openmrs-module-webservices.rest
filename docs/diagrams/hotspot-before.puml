@@ -1,26 +1,41 @@
 @startuml
-title Hotspot before: ConversionUtil.convert(Object, Type)
+title Hotspot before - RestServiceImpl god-class
 
-class ConversionUtil {
-  +convert(object: Object, toType: Type): Object
+package "org.openmrs.module.webservices.rest.web.api.impl" {
+  class RestServiceImpl {
+    +getResourceByName(name)
+    +getResourceBySupportedClass(type)
+    +getResourceHandlers()
+    +getSearchHandler(resource, parameters)
+    +getSearchHandlers(resource)
+    +initialize()
+    -initializeResources()
+    -getResourceMetadata(resource)
+    -initializeSearchHandlers()
+    -addSearchHandler(...)
+    -eliminateCandidateSearchHandlersWithMissingRequiredParameters(...)
+  }
 }
 
-note right of ConversionUtil
-Baseline convert-methode:
-- 118 LOC
-- CC 23
-- public methode bevat bijna alle beslissingen
-- collectie/array logica
-- string/date/locale/enum/class/valueOf logica
-- map conversie
-- number conversie
-- boolean conversie
-allemaal in 1 methode
-end note
+interface RestService
+class OpenmrsClassScanner
+class RestHelperService
+class Resource
+class SearchHandler
+class DelegatingSubclassHandler
 
-ConversionUtil --> "java.lang.reflect.Type"
-ConversionUtil --> "java.util.Collection"
-ConversionUtil --> "org.openmrs.api.context.Context"
-ConversionUtil --> "Converter"
-ConversionUtil --> "ConversionException"
+RestServiceImpl ..|> RestService
+RestServiceImpl --> OpenmrsClassScanner : scans resources
+RestServiceImpl --> RestHelperService : gets handlers
+RestServiceImpl --> Resource : creates/caches
+RestServiceImpl --> SearchHandler : indexes/selects
+RestServiceImpl --> DelegatingSubclassHandler : appends handlers
+
+note right of RestServiceImpl
+  One class mixes:
+  - service facade
+  - resource registry
+  - search handler registry
+  - cache reset/async init
+end note
 @enduml

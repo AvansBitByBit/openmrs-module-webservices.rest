@@ -1,13 +1,11 @@
 # Samenvatting voor DOCX
 
-Voor LU2 is de onderhoudbaarheid van `openmrs-module-webservices.rest` onderzocht met ISO 25010 Maintainability. De repo heeft een logische Maven-indeling met `omod-common`, `omod` en `integration-tests`, maar centrale frameworkclasses zijn groot en complex.
+Voor LU2 is de onderhoudbaarheid van `openmrs-module-webservices.rest` onderzocht met ISO 25010 Maintainability. De repo heeft een logische Maven-structuur met `omod-common`, `omod` en `integration-tests`, maar centrale frameworkclasses zijn groot en complex. Vooral `RestServiceImpl`, `RestUtil`, `BaseDelegatingResource` en Swagger-generatie zijn hotspots.
 
-De analyse gebruikt meerdere metrieken: volume/LOC, rough complexity, component balance, import coupling, unit interfacing, package coupling, PMD CPD duplicatie en coverage. Grote hotspots zijn `SwaggerSpecificationCreator.java` (1241 LOC), `RestUtil.java` (951 LOC), `BaseDelegatingResource.java` (902 LOC), `RestServiceImpl.java` (738 LOC) en `ConversionUtil.java`.
+De hoofd-PoC is verplaatst van de eerdere kleine `ConversionUtil`-refactor naar een architectuurrefactor van `RestServiceImpl`. Baseline was `RestServiceImpl` 737 LOC, 32 imports en 170 rough decision tokens. De class deed tegelijk resource discovery, search handler selectie en service-coordinatie.
 
-De PoC richt zich op `ConversionUtil.convert(Object, Type)`. Deze methode had in de baseline 118 LOC en cyclomatic complexity 23. De verbetering is bewust klein gehouden: de public API bleef gelijk, maar de interne logica is opgesplitst in private helper methods voor collections/arrays, strings, dates/classes, `valueOf` en numbers.
+De verbetering splitst dit op in package-private `ResourceRegistry` en `SearchHandlerRegistry`. `RestServiceImpl` blijft de publieke facade en het `RestService` API is niet gewijzigd. Na de PoC is `RestServiceImpl` 197 LOC en heeft nog 19 rough decision tokens. De registries blijven kleiner dan de oude god-class.
 
-Er zijn vier regressietests toegevoegd. Na de PoC draait `ConversionUtilTest` groen met 26 tests en draait `omod-common` groen met 121 tests. De methode daalde van 118 naar 39 LOC en van CC 23 naar CC 12. De JaCoCo coverage voor `ConversionUtil` steeg van 59.27% naar 64.98% line coverage en van 50.58% naar 56.82% branch coverage.
+Validatie: `RestServiceImplTest` draait groen met 53 tests, `omod-common` draait groen met 121 tests, `git diff --check` is groen en `mvn clean verify` is groen. `mvn clean test` was rood op een bestaande/flaky `ClearDbCacheController2_0Test`, daarom claim ik niet algemeen dat er nul regressierisico in de hele repo is.
 
-De regressieconclusie is bewust afgebakend: er is geen nieuwe regressie aangetoond binnen de uitgevoerde `omod-common`/`ConversionUtil` scope. De full Maven reactor is niet groen; `mvn clean test` faalt baseline en after op dezelfde bestaande dependency-plugin failure, en `mvn clean verify` heeft alleen after-evidence met 1 testfailure in `omod`.
-
-Conclusie: de PoC verbetert onderhoudbaarheid lokaal en aantoonbaar, vooral analyzability en testability van `ConversionUtil.convert`. De repo als geheel heeft nog vervolgwerk nodig in grotere centrale classes en in de full reactor test/buildstatus.
+Live integration met Docker is geprobeerd, maar Docker Desktop/daemon draaide niet. Daardoor is live OpenMRS integration niet bewezen. Conclusie: de onderhoudbaarheid is aantoonbaar verbeterd voor de gekozen architectuurhotspot, vooral in modularity, analyzability en modifiability, met eerlijke beperkingen rond full reactor stabiliteit en live integration.

@@ -1,32 +1,58 @@
 @startuml
-title Hotspot after: opgesplitste ConversionUtil conversie
+title Hotspot after - RestServiceImpl as facade
 
-class ConversionUtil {
-  +convert(object: Object, toType: Type): Object
-  -NO_CONVERSION: Object
-  -getRawClass(toType: Type): Class
-  -convertToCollectionOrArray(object, toType, toClass): Object
-  -convertToArray(input, targetElementType): Object
-  -createCollection(toClass): Collection
-  -convertFromString(string, toClass, toType): Object
-  -convertStringToDate(string): Date
-  -convertStringToClass(string, toType): Class
-  -convertUsingValueOf(string, toClass): Object
-  -convertNumber(object, toClass): Object
+package "org.openmrs.module.webservices.rest.web.api.impl" {
+  class RestServiceImpl {
+    +getResourceByName(name)
+    +getResourceBySupportedClass(type)
+    +getResourceHandlers()
+    +getSearchHandler(resource, parameters)
+    +getSearchHandlers(resource)
+    +initialize()
+    -getResourceRegistry()
+    -getSearchHandlerRegistry()
+  }
+
+  class ResourceRegistry <<package-private>> {
+    ~initialize()
+    ~getResourceByName(name)
+    ~getResourceBySupportedClass(type)
+    ~getResourceHandlers()
+  }
+
+  class SearchHandlerRegistry <<package-private>> {
+    ~initialize()
+    ~getSearchHandler(resource, parameters)
+    ~getSearchHandlers(resource)
+    ~getAllSearchHandlers()
+  }
 }
 
-note right of ConversionUtil
-Na PoC:
-- convert-methode 39 LOC
-- CC 12
-- deelgedrag zit in kleine helpers
-- public API blijft gelijk
-- sentinel scheidt null van geen match
-- regressietests dekken extra branches
+interface RestService
+class OpenmrsClassScanner
+class RestHelperService
+
+RestServiceImpl ..|> RestService
+RestServiceImpl *-- ResourceRegistry : lazy owns
+RestServiceImpl *-- SearchHandlerRegistry : lazy owns
+ResourceRegistry --> OpenmrsClassScanner
+ResourceRegistry --> RestHelperService
+SearchHandlerRegistry --> RestHelperService
+
+note right of RestServiceImpl
+  Public API unchanged.
+  The facade now coordinates.
 end note
 
-ConversionUtil --> "Converter"
-ConversionUtil --> "ConversionException"
-ConversionUtil --> "DateTimeFormat"
-ConversionUtil --> "Context"
+note bottom of ResourceRegistry
+  Resource discovery:
+  annotations, version filtering,
+  order conflicts, class/name lookup.
+end note
+
+note bottom of SearchHandlerRegistry
+  Search lookup:
+  id index, parameter matching,
+  required parameters, default/ambiguous selection.
+end note
 @enduml

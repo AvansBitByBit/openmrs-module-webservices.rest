@@ -1,0 +1,59 @@
+HEAD: 0c796f5e3bc8b901670179d8923a2dc277d808d6
+
+Status:
+ M docs/diagrams/hotspot-after.puml
+ M docs/diagrams/hotspot-before.puml
+ M docs/diagrams/hotspot-sequence.puml
+ M docs/maintenance-research/01-analyse.md
+ M docs/maintenance-research/02-teststrategie.md
+ M docs/maintenance-research/03-verbeterplan.md
+ M docs/maintenance-research/04-ontwerp.md
+ M docs/maintenance-research/05-poc-verantwoording.md
+ M docs/maintenance-research/06-validatie.md
+ M docs/maintenance-research/beroepsproduct-lu2-onderhoudbaarheid.md
+ M docs/maintenance-research/claim-audit.md
+ M docs/maintenance-research/onderhoudbaarheidsonderzoek.md
+ M docs/maintenance-research/promptlogboek.md
+ M docs/maintenance-research/rubric-self-assessment.md
+ M docs/maintenance-research/samenvatting-voor-docx.md
+?? docs/maintenance-research/evidence/buildfix-clean-package-skiptests.txt
+?? docs/maintenance-research/evidence/buildfix-clean-package.txt
+?? docs/maintenance-research/evidence/buildfix-clean-test.txt
+?? docs/maintenance-research/evidence/buildfix-clean-verify.txt
+?? docs/maintenance-research/evidence/buildfix-jar-resource-inspection.txt
+?? docs/maintenance-research/evidence/buildfix-resource-inspection.txt
+?? docs/maintenance-research/evidence/characterization-restserviceimpl-test.txt
+?? docs/maintenance-research/evidence/docker-build-module.txt
+?? docs/maintenance-research/evidence/docker-version.txt
+?? docs/maintenance-research/evidence/live-integration-summary.md
+?? docs/maintenance-research/evidence/live-session-curl.txt
+?? docs/maintenance-research/evidence/refactor-clean-test.txt
+?? docs/maintenance-research/evidence/refactor-clean-verify.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-reactor-test-final.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-reactor-test.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-test-first.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-test.txt
+?? docs/maintenance-research/evidence/refactor-git-diff-check.txt
+?? docs/maintenance-research/evidence/refactor-omod-common-test-first.txt
+?? docs/maintenance-research/evidence/refactor-omod-common-test.txt
+?? docs/maintenance-research/evidence/refactor-precommit-head.txt
+?? docs/maintenance-research/evidence/restservice-after-metrics.md
+?? docs/maintenance-research/evidence/restservice-baseline-clean-test.txt
+?? docs/maintenance-research/evidence/restservice-baseline-clean-verify.txt
+?? docs/maintenance-research/evidence/restservice-baseline-focused-test.txt
+?? docs/maintenance-research/evidence/restservice-baseline-git.txt
+?? docs/maintenance-research/evidence/restservice-baseline-metrics.md
+?? docs/maintenance-research/evidence/restservice-baseline-omod-common-test.txt
+?? docs/maintenance-research/evidence/restservice-final-git-env.txt
+
+Java:
+openjdk version "1.8.0_482"
+OpenJDK Runtime Environment (Temurin)(build 1.8.0_482-b08)
+OpenJDK 64-Bit Server VM (Temurin)(build 25.482-b08, mixed mode)
+
+Maven:
+Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+Maven home: C:\Users\yazan\.codex\tools\apache-maven-3.9.11
+Java version: 17.0.8.1, vendor: Amazon.com Inc., runtime: C:\Program Files\Amazon Corretto\jdk17.0.8_8
+Default locale: en_US, platform encoding: Cp1252
+OS name: "windows 11", version: "10.0", arch: "amd64", family: "windows"
