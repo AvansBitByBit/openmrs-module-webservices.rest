@@ -81,6 +81,20 @@ jobs:
       - name: Build with Maven
         run: mvn --batch-mode --no-transfer-progress clean verify
 
+      - name: Generate JaCoCo coverage reports
+        run: mvn --batch-mode --no-transfer-progress jacoco:report
+
+      - name: Upload JaCoCo coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage
+          path: |
+            **/target/jacoco.exec
+            **/target/site/jacoco/**
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Validate production artifact has no test resources
         shell: bash
         run: |
