@@ -12,6 +12,7 @@ package org.openmrs.module.webservices.rest.web.v1_0.controller.openmrs1_9;
 import org.openmrs.FormResource;
 import org.openmrs.api.FormService;
 import org.openmrs.module.webservices.rest.web.RestConstants;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceController;
 import org.openmrs.module.webservices.rest.web.v1_0.resource.openmrs1_9.FormResourceResource1_9;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,5 +68,8 @@ public class FormResourceController1_9 extends MainResourceController {
 		clobDatatypeStorageController.retrieve(resource.getValueReference(), request, response);
 		
 		response.setHeader("Content-Disposition", "attachment;filename=\"" + resource.getName() + "\"");
+		SecurityAuditLogger.getInstance().dataExported(SecurityAuditLogger.currentActor(),
+		    "formUuid=" + formUuid + " resourceUuid=" + resourceUuid, SecurityAuditLogger.where(request),
+		    "REST form resource export");
 	}
 }

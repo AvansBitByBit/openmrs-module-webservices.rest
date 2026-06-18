@@ -26,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.RestUtil;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,8 @@ public class AuthorizationFilter implements Filter {
 		if (!RestUtil.isIpAllowed(request.getRemoteAddr())) {
 			// the ip address is not valid, set a 403 http error code
 			HttpServletResponse httpresponse = (HttpServletResponse) response;
+			SecurityAuditLogger.getInstance().loginFailed(SecurityAuditLogger.UNKNOWN, request.getRemoteAddr(),
+			    "IP address not authorized");
 			httpresponse.sendError(HttpServletResponse.SC_FORBIDDEN,
 			    "IP address '" + request.getRemoteAddr() + "' is not authorized");
 			return;
@@ -92,6 +95,8 @@ public class AuthorizationFilter implements Filter {
 							basicAuth = basicAuth.substring(6);
 							if (StringUtils.isBlank(basicAuth)) {
 								HttpServletResponse httpResponse = (HttpServletResponse) response;
+								SecurityAuditLogger.getInstance().loginFailed(SecurityAuditLogger.UNKNOWN,
+								    SecurityAuditLogger.where(httpRequest), "Invalid authorization header");
 								httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid credentials provided");
 								return;
 							}
@@ -99,18 +104,31 @@ public class AuthorizationFilter implements Filter {
 							String decoded = new String(Base64.decodeBase64(basicAuth), Charset.forName("UTF-8"));
 							if (StringUtils.isBlank(decoded) || !decoded.contains(":")) {
 								HttpServletResponse httpResponse = (HttpServletResponse) response;
+								SecurityAuditLogger.getInstance().loginFailed(SecurityAuditLogger.UNKNOWN,
+								    SecurityAuditLogger.where(httpRequest), "Invalid authorization header");
 								httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid credentials provided");
 								return;
 							}
 							
-							String[] userAndPass = decoded.split(":");
+							String[] userAndPass = decoded.split(":", 2);
 							Context.authenticate(userAndPass[0], userAndPass[1]);
-							log.debug("authenticated [{}]", userAndPass[0]);
+							SecurityAuditLogger.getInstance().loginSucceeded(userAndPass[0],
+							    SecurityAuditLogger.where(httpRequest), "Basic authentication accepted");
 						}
 						catch (Exception ex) {
 							// This filter never stops execution. If the user failed to
 							// authenticate, that will be caught later.
-							log.debug("authentication exception ", ex);
+							String username = SecurityAuditLogger.UNKNOWN;
+							try {
+								String decoded = new String(Base64.decodeBase64(basicAuth), Charset.forName("UTF-8"));
+								if (decoded.contains(":")) {
+									username = decoded.split(":", 2)[0];
+								}
+							}
+							catch (RuntimeException ignored) {
+							}
+							SecurityAuditLogger.getInstance().loginFailed(username, SecurityAuditLogger.where(httpRequest),
+							    "Invalid credentials");
 						}
 					}
 				}
