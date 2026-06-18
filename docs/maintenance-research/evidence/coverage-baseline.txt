@@ -1,0 +1,6 @@
+# Coverage baseline
+
+Command: `mvn --batch-mode --no-transfer-progress -pl omod-common test -Dtest=ConversionUtilTest jacoco:report`
+
+ConversionUtil line coverage: 147/248 = 59.27%
+ConversionUtil branch coverage: 87/172 = 50.58%

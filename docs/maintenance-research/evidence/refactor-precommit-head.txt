@@ -1,0 +1,22 @@
+5129d2de455f157aa85a82fbf448a77e42d5a90e
+ M omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/RestServiceImpl.java
+?? docs/maintenance-research/evidence/buildfix-clean-package-skiptests.txt
+?? docs/maintenance-research/evidence/buildfix-clean-package.txt
+?? docs/maintenance-research/evidence/buildfix-clean-test.txt
+?? docs/maintenance-research/evidence/buildfix-clean-verify.txt
+?? docs/maintenance-research/evidence/buildfix-jar-resource-inspection.txt
+?? docs/maintenance-research/evidence/buildfix-resource-inspection.txt
+?? docs/maintenance-research/evidence/characterization-restserviceimpl-test.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-reactor-test.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-test-first.txt
+?? docs/maintenance-research/evidence/refactor-focused-restserviceimpl-test.txt
+?? docs/maintenance-research/evidence/refactor-omod-common-test-first.txt
+?? docs/maintenance-research/evidence/refactor-precommit-head.txt
+?? docs/maintenance-research/evidence/restservice-baseline-clean-test.txt
+?? docs/maintenance-research/evidence/restservice-baseline-clean-verify.txt
+?? docs/maintenance-research/evidence/restservice-baseline-focused-test.txt
+?? docs/maintenance-research/evidence/restservice-baseline-git.txt
+?? docs/maintenance-research/evidence/restservice-baseline-metrics.md
+?? docs/maintenance-research/evidence/restservice-baseline-omod-common-test.txt
+?? omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/ResourceRegistry.java
+?? omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/SearchHandlerRegistry.java

@@ -1,0 +1,29 @@
+@startuml
+title Search handler lookup after refactor
+
+actor Client
+participant RestServiceImpl
+participant SearchHandlerRegistry
+participant RestHelperService
+
+Client -> RestServiceImpl : getSearchHandler(resourceName, parameters)
+RestServiceImpl -> SearchHandlerRegistry : getSearchHandler(resourceName, parameters)
+
+alt registry not initialized
+  SearchHandlerRegistry -> RestHelperService : getRegisteredSearchHandlers()
+  RestHelperService --> SearchHandlerRegistry : handlers
+  SearchHandlerRegistry -> SearchHandlerRegistry : index by id, parameter and resource
+end
+
+SearchHandlerRegistry -> SearchHandlerRegistry : extract non-special parameters
+alt s=id provided
+  SearchHandlerRegistry -> SearchHandlerRegistry : lookup by resource + id
+else parameter based search
+  SearchHandlerRegistry -> SearchHandlerRegistry : match candidates by parameters
+  SearchHandlerRegistry -> SearchHandlerRegistry : remove handlers with missing required params
+  SearchHandlerRegistry -> SearchHandlerRegistry : return single/default or throw ambiguous
+end
+
+SearchHandlerRegistry --> RestServiceImpl : SearchHandler or exception/null
+RestServiceImpl --> Client : SearchHandler or exception/null
+@enduml

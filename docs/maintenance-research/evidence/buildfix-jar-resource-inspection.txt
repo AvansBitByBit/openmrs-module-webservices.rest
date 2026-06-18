@@ -1,0 +1,5 @@
+
+config.xml
+messages.properties
+webModuleApplicationContext.xml
+
