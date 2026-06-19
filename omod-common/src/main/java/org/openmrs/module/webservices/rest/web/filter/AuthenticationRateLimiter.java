@@ -27,7 +27,7 @@ class AuthenticationRateLimiter {
 		this.clock = clock;
 	}
 	
-	boolean isLocked(String username, String remoteAddress, int maxFailures, long windowMillis, long lockoutMillis) {
+	boolean isLocked(String username, String remoteAddress) {
 		FailureState state = failures.get(key(username, remoteAddress));
 		long now = now();
 		if (state == null) {
