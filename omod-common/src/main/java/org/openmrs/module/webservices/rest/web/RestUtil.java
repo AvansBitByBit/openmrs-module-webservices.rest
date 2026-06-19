@@ -841,27 +841,8 @@ public class RestUtil implements GlobalPropertyListener {
 		} else {
 			map.put("message", "[" + message + "]");
 		}
-		StackTraceElement[] stackTraceElements = ex.getStackTrace();
-		if (stackTraceElements.length > 0) {
-			StackTraceElement stackTraceElement = ex.getStackTrace()[0];
-			String stackTraceDetailsEnabledGp = null;
-			try {
-				Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-				stackTraceDetailsEnabledGp = getGlobalProperty(RestConstants.ENABLE_STACK_TRACE_DETAILS_GLOBAL_PROPERTY_NAME, "false");
-			}
-			finally {
-				Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-			}
-			map.put("code", "");
-			if ("true".equalsIgnoreCase(stackTraceDetailsEnabledGp)) {
-				map.put("detail", ExceptionUtils.getStackTrace(ex));
-			} else {
-				map.put("detail", "");
-			}
-		} else {
-			map.put("code", "");
-			map.put("detail", "");
-		}
+		map.put("code", "");
+		map.put("detail", "");
 		map.put("rawMessage", ex.getMessage());
 		String translatedMessage = Context.getMessageSourceService().getMessage(ex.getMessage(), null, null, Context.getLocale());
 		map.put("translatedMessage", translatedMessage);
