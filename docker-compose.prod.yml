@@ -21,7 +21,10 @@ services:
       - maven-cache-prod:/root/.m2
 
   gateway:
-    image: openmrs/openmrs-reference-application-3-gateway:3.6.0
+    image: openmrs-webservices-rest-gateway:3.6.0-local
+    build:
+      context: .
+      dockerfile: docker/gateway/Dockerfile
     restart: unless-stopped
     depends_on:
       - frontend
