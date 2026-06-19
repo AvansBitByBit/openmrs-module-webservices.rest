@@ -128,8 +128,7 @@ public class AuthorizationFilter implements Filter {
 							
 							String[] userAndPass = decoded.split(":", 2);
 							String username = userAndPass[0];
-							if (isRateLimitEnabled() && RATE_LIMITER.isLocked(username, request.getRemoteAddr(), getMaxFailures(),
-							    getWindowMillis(), getLockoutMillis())) {
+							if (isRateLimitEnabled() && RATE_LIMITER.isLocked(username, request.getRemoteAddr())) {
 								HttpServletResponse httpResponse = (HttpServletResponse) response;
 								SecurityAuditLogger.getInstance().loginLockoutDenied(username,
 								    SecurityAuditLogger.where(httpRequest), "Authentication temporarily locked");
