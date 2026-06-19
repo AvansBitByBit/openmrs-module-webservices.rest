@@ -410,7 +410,7 @@ public class ConversionUtilTest extends BaseModuleWebContextSensitiveTest {
 
 	public class Temp {}
 
-	public class CollectionConversionHolder {
+	public static class CollectionConversionHolder {
 
 		private List<Integer> integerValues;
 	}
