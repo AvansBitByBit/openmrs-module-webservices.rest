@@ -81,6 +81,20 @@ jobs:
       - name: Build with Maven
         run: mvn --batch-mode --no-transfer-progress clean verify
 
+      - name: Generate JaCoCo coverage reports
+        run: mvn --batch-mode --no-transfer-progress jacoco:report
+
+      - name: Upload JaCoCo coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage
+          path: |
+            **/target/jacoco.exec
+            **/target/site/jacoco/**
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Validate production artifact has no test resources
         shell: bash
         run: |
@@ -125,6 +139,131 @@ jobs:
           OMRS_DB_PASSWORD: ci-placeholder
           MYSQL_ROOT_PASSWORD: ci-placeholder-root
         run: docker compose -f docker-compose.prod.yml config
+
+  security-scan:
+    name: Trivy security scan
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - compose-validation
+    env:
+      TRIVY_CACHE_DIR: .trivycache
+      TRIVY_NO_PROGRESS: "true"
+      TRIVY_SEVERITY: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
+        with:
+          version: v0.69.3
+          cache: true
+
+      - name: Scan repository filesystem
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/trivy
+          trivy fs \
+            --scanners vuln,secret,misconfig \
+            --severity "$TRIVY_SEVERITY" \
+            --skip-dirs .git \
+            --skip-dirs docs/auditrapport/evidence \
+            --format table \
+            --output reports/trivy/repository-table.txt \
+            .
+          trivy fs \
+            --scanners vuln,secret,misconfig \
+            --severity "$TRIVY_SEVERITY" \
+            --skip-dirs .git \
+            --skip-dirs docs/auditrapport/evidence \
+            --format json \
+            --output reports/trivy/repository.json \
+            .
+
+      - name: Download module artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webservices-rest-omod
+          path: dist
+
+      - name: Build backend overlay image for scanning
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docker/modules
+          omod_file="$(find dist -name '*.omod' -type f | head -n 1)"
+          if [ -z "$omod_file" ]; then
+            echo "No downloaded OMOD artifact found for backend image scan."
+            exit 1
+          fi
+          cp "$omod_file" docker/modules/
+          docker build -t openmrs-webservices-rest-backend:ci -f docker/backend/Dockerfile .
+
+      - name: Scan runtime container images
+        shell: bash
+        run: |
+          set -euo pipefail
+          images=(
+            "backend-overlay|openmrs-webservices-rest-backend:ci"
+            "frontend|openmrs/openmrs-reference-application-3-frontend:3.6.0"
+            "gateway|openmrs/openmrs-reference-application-3-gateway:3.6.0"
+            "database|mariadb:10.11.7"
+          )
+
+          for entry in "${images[@]}"; do
+            name="${entry%%|*}"
+            image="${entry#*|}"
+            trivy image \
+              --severity "$TRIVY_SEVERITY" \
+              --format table \
+              --output "reports/trivy/image-${name}-table.txt" \
+              "$image"
+            trivy image \
+              --severity "$TRIVY_SEVERITY" \
+              --format json \
+              --output "reports/trivy/image-${name}.json" \
+              "$image"
+          done
+
+      - name: Create Trivy report summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          summary="reports/trivy/README.md"
+          {
+            echo "# Trivy CI report"
+            echo
+            echo "Generated at: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            echo "This job is report-only: vulnerabilities are recorded in artifacts, but do not fail CI."
+            echo
+            echo "| Report | Target | Critical | High | Medium | Low | Unknown | Misconfigs | Secrets |"
+            echo "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+          } > "$summary"
+
+          for json in reports/trivy/*.json; do
+            report="$(basename "$json" .json)"
+            target="$(jq -r '.ArtifactName // "repository"' "$json")"
+            critical="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' "$json")"
+            high="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' "$json")"
+            medium="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length' "$json")"
+            low="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW")] | length' "$json")"
+            unknown="$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "UNKNOWN")] | length' "$json")"
+            misconfigs="$(jq '[.Results[]?.Misconfigurations[]?] | length' "$json")"
+            secrets="$(jq '[.Results[]?.Secrets[]?] | length' "$json")"
+            echo "| ${report} | ${target} | ${critical} | ${high} | ${medium} | ${low} | ${unknown} | ${misconfigs} | ${secrets} |" >> "$summary"
+          done
+
+      - name: Upload Trivy reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-reports
+          path: reports/trivy/**
+          if-no-files-found: error
+          retention-days: 30
 
   compose-smoke-test:
     name: Optional Dev Compose smoke test

@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.openmrs.Obs;
 import org.openmrs.api.ObsService;
 import org.openmrs.module.webservices.rest.web.RestConstants;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.BaseRestController;
 import org.openmrs.obs.ComplexData;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
@@ -39,7 +41,8 @@ public class ObsComplexValueController1_8 extends BaseRestController {
 	
 	@RequestMapping(value = "/{uuid}/value", method = RequestMethod.GET)
 	public void getFile(@PathVariable("uuid") String uuid,
-	        @RequestParam(required = false, defaultValue = "RAW_VIEW") String view, HttpServletResponse response)
+	        @RequestParam(required = false, defaultValue = "RAW_VIEW") String view, HttpServletRequest request,
+	        HttpServletResponse response)
 	        throws Exception {
 		Obs obs = obsService.getObsByUuid(uuid);
 		if (!obs.isComplex()) {
@@ -76,5 +79,7 @@ public class ObsComplexValueController1_8 extends BaseRestController {
 		}
 		
 		response.flushBuffer();
+		SecurityAuditLogger.getInstance().dataExported(SecurityAuditLogger.currentActor(), "obsUuid=" + uuid,
+		    SecurityAuditLogger.where(request), "REST complex observation export");
 	}
 }
