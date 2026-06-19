@@ -139,7 +139,7 @@ public class RestUtil implements GlobalPropertyListener {
 	 * 
 	 * @param ip
 	 * @param candidateIps
-	 * @return <code>true</code> if there is a match <strong>Should</strong> return true if list is
+	 * @return <code>true</code> if there is a match <strong>Should</strong> return false if list is
 	 *         empty <strong>Should</strong> return false if there is no match <strong>Should</strong>
 	 *         return true for exact match <strong>Should</strong> return true for match with submask
 	 *         <strong>Should</strong> return false if there is no match with submask
@@ -148,7 +148,7 @@ public class RestUtil implements GlobalPropertyListener {
 	 */
 	public static boolean ipMatches(String ip, List<String> candidateIps) {
 		if (candidateIps.isEmpty()) {
-			return true;
+			return false;
 		}
 		
 		InetAddress address;
@@ -852,7 +852,7 @@ public class RestUtil implements GlobalPropertyListener {
 			finally {
 				Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
 			}
-			map.put("code", stackTraceElement.getClassName() + ":" + stackTraceElement.getLineNumber());
+			map.put("code", "");
 			if ("true".equalsIgnoreCase(stackTraceDetailsEnabledGp)) {
 				map.put("detail", ExceptionUtils.getStackTrace(ex));
 			} else {

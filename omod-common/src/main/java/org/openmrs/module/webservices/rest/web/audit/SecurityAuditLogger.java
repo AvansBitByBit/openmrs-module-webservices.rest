@@ -58,6 +58,18 @@ public class SecurityAuditLogger {
 		recordError(actor, "LOGIN_FAILURE", where, why);
 	}
 	
+	public void loginLockout(String actor, String where, String why) {
+		recordError(actor, "LOGIN_LOCKOUT", where, why);
+	}
+	
+	public void loginLockoutDenied(String actor, String where, String why) {
+		recordError(actor, "LOGIN_LOCKOUT_DENIED", where, why);
+	}
+	
+	public void insecureTransportDenied(String actor, String where, String why) {
+		recordError(actor, "INSECURE_TRANSPORT_DENIED", where, why);
+	}
+	
 	public void patientRecordViewed(String actor, String patientUuid, String where, String why) {
 		recordWarn(actor, "PATIENT_RECORD_VIEW patientUuid=" + value(patientUuid), where, why);
 	}

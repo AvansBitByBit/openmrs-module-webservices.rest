@@ -138,6 +138,7 @@ jobs:
         env:
           OMRS_DB_PASSWORD: ci-placeholder
           MYSQL_ROOT_PASSWORD: ci-placeholder-root
+          OMRS_REST_ALLOWED_IPS: 127.0.0.1
         run: docker compose -f docker-compose.prod.yml config
 
   security-scan:
