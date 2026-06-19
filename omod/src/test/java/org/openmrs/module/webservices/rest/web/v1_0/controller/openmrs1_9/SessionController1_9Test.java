@@ -18,6 +18,7 @@ import org.openmrs.GlobalProperty;
 import org.openmrs.Location;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
+import org.openmrs.api.context.ContextAuthenticationException;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.util.OpenmrsConstants;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
@@ -210,5 +211,22 @@ public class SessionController1_9Test extends BaseModuleWebContextSensitiveTest 
 	public void post_shouldFailWhenSettingNonexistantLocation() throws Exception {
 		String content = "{\"sessionLocation\":\"fake-nonexistant-uuid\"}";
 		controller.post(hsr, new ObjectMapper().readValue(content, HashMap.class));
+	}
+
+	@Test(expected = ContextAuthenticationException.class)
+	public void getDiagnostics_shouldRequireViewRestwsPrivilege() throws Exception {
+		controller.delete(hsr);
+
+		controller.getDiagnostics(null);
+	}
+
+	@Test
+	public void getDiagnostics_shouldNotExposeRolesOrPrivileges() throws Exception {
+		SimpleObject diagnostics = (SimpleObject) controller.getDiagnostics(null);
+
+		Assert.assertEquals(Boolean.TRUE, diagnostics.get("authenticated"));
+		Assert.assertEquals(Context.getAuthenticatedUser().getUsername(), diagnostics.get("currentUser"));
+		Assert.assertFalse(diagnostics.containsKey("userRoles"));
+		Assert.assertFalse(diagnostics.containsKey("userPrivileges"));
 	}
 }

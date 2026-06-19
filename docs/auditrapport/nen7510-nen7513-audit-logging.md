@@ -48,6 +48,8 @@ De implementatie logt bij patiëntdossiers en export alleen technische identifie
 | --- | --- |
 | Inloggen succesvol | Gedekt via `SecurityAuditLogger.loginSucceeded` en `AuthorizationFilter`. |
 | Inloggen fout | Gedekt via `SecurityAuditLogger.loginFailed` en `AuthorizationFilter`. |
+| Brute-force lockout | Gedekt via `SecurityAuditLogger.loginLockout` en `loginLockoutDenied`. |
+| Onveilig transport geweigerd | Gedekt via `SecurityAuditLogger.insecureTransportDenied`. |
 | Inzage patiëntdossier | Gedekt via `PatientResource1_8.retrieve`. |
 | Wijziging rechten/rol | Gedekt via `RoleResource1_8.create`, `RoleResource1_8.update` en `UserResource2_0.save`. |
 | Export van gegevens | Gedekt via observatie- en form-resource downloadcontrollers. |

@@ -90,20 +90,26 @@ public class SecurityAuditLoggerTest {
 		SecurityAuditLogger auditLogger = new SecurityAuditLogger(writer, FIXED_CLOCK);
 		
 		auditLogger.loginFailed("arts.jansen", "10.0.0.5 POST /ws/rest/v1/session", "Invalid credentials");
+		auditLogger.loginLockout("arts.jansen", "10.0.0.5 POST /ws/rest/v1/session", "Authentication locked");
+		auditLogger.loginLockoutDenied("arts.jansen", "10.0.0.5 POST /ws/rest/v1/session", "Authentication locked");
+		auditLogger.insecureTransportDenied("arts.jansen", "10.0.0.5 POST /ws/rest/v1/session", "HTTPS required");
 		auditLogger.patientRecordAccessDenied("arts.jansen", "patient-uuid-123",
 		    "10.0.0.5 GET /ws/rest/v1/patient/patient-uuid-123", "Access denied");
 		auditLogger.dataExportDenied("arts.jansen", "obsUuid=obs-uuid-789",
 		    "10.0.0.5 GET /ws/rest/v1/obs/obs-uuid-789/value", "Access denied");
 		
-		assertEquals(3, listAppender.list.size());
+		assertEquals(6, listAppender.list.size());
 		for (ILoggingEvent event : listAppender.list) {
 			assertEquals(Level.ERROR, event.getLevel());
 			assertContainsFiveWs(event.getFormattedMessage());
 		}
 		assertTrue(listAppender.list.get(0).getFormattedMessage().contains("wat=\"LOGIN_FAILURE\""));
-		assertTrue(listAppender.list.get(1).getFormattedMessage().contains("wat=\"PATIENT_RECORD_ACCESS_DENIED"));
-		assertTrue(listAppender.list.get(2).getFormattedMessage().contains("wat=\"DATA_EXPORT_DENIED"));
-		verify(writer, times(3)).write(anyString());
+		assertTrue(listAppender.list.get(1).getFormattedMessage().contains("wat=\"LOGIN_LOCKOUT\""));
+		assertTrue(listAppender.list.get(2).getFormattedMessage().contains("wat=\"LOGIN_LOCKOUT_DENIED\""));
+		assertTrue(listAppender.list.get(3).getFormattedMessage().contains("wat=\"INSECURE_TRANSPORT_DENIED\""));
+		assertTrue(listAppender.list.get(4).getFormattedMessage().contains("wat=\"PATIENT_RECORD_ACCESS_DENIED"));
+		assertTrue(listAppender.list.get(5).getFormattedMessage().contains("wat=\"DATA_EXPORT_DENIED"));
+		verify(writer, times(6)).write(anyString());
 	}
 	
 	@Test

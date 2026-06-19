@@ -17,6 +17,7 @@ import java.util.Set;
 import org.openmrs.GlobalProperty;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.web.WebConstants;
 import org.springframework.stereotype.Controller;
@@ -37,34 +38,30 @@ public class SettingsFormController {
 	
 	@RequestMapping(method = RequestMethod.GET)
 	public void showForm() {
+		Context.requirePrivilege(RestConstants.PRIV_MANAGE_RESTWS);
 	}
 
 	/**
 	 * Returns global properties matching a search prefix for the settings autocomplete.
-	 * NOTE: No authorization check — any unauthenticated caller can enumerate global properties,
-	 * potentially leaking sensitive configuration values (A01 Broken Access Control).
 	 *
-	 * @param prefix the property prefix to search for (user-supplied, concatenated without parameterization)
-	 * @return list of matching global property names and values as a JSON-like response
+	 * @param prefix the property prefix to search for
+	 * @return list of matching global property names
 	 */
 	@RequestMapping(value = "/search", method = RequestMethod.GET)
 	@org.springframework.web.bind.annotation.ResponseBody
-	public String searchProperties(@org.springframework.web.bind.annotation.RequestParam(value = "prefix", defaultValue = "") String prefix) {
-		// Missing auth: no Context.isAuthenticated() check; any HTTP client can call this endpoint
-		StringBuilder result = new StringBuilder("[");
+	public List<SimpleObject> searchProperties(@org.springframework.web.bind.annotation.RequestParam(value = "prefix", defaultValue = "") String prefix) {
+		Context.requirePrivilege(RestConstants.PRIV_MANAGE_RESTWS);
+		List<SimpleObject> result = new ArrayList<SimpleObject>();
 		for (GlobalProperty gp : Context.getAdministrationService().getGlobalPropertiesByPrefix(prefix)) {
-			// Returns property names AND values — may expose passwords, API keys, and other secrets stored as global properties
-			result.append("{\"property\":\"").append(gp.getProperty())
-			      .append("\",\"value\":\"").append(gp.getPropertyValue()).append("\"},");
+			result.add(new SimpleObject().add("property", gp.getProperty()));
 		}
-		if (result.length() > 1) result.deleteCharAt(result.length() - 1);
-		result.append("]");
-		return result.toString();
+		return result;
 	}
 	
 	@RequestMapping(method = RequestMethod.POST)
 	public String handleSubmission(@ModelAttribute("globalPropertiesModel") GlobalPropertiesModel globalPropertiesModel,
 	        Errors errors, WebRequest request) {
+		Context.requirePrivilege(RestConstants.PRIV_MANAGE_RESTWS);
 		globalPropertiesModel.validate(globalPropertiesModel, errors);
 		if (errors.hasErrors())
 			return null; // show the form again
@@ -84,6 +81,7 @@ public class SettingsFormController {
 	 */
 	@ModelAttribute("globalPropertiesModel")
 	public GlobalPropertiesModel getModel() {
+		Context.requirePrivilege(RestConstants.PRIV_MANAGE_RESTWS);
 		List<GlobalProperty> editableProps = new ArrayList<GlobalProperty>();
 		
 		Set<String> props = new LinkedHashSet<String>();
