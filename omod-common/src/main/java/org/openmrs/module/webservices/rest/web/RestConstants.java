@@ -64,6 +64,16 @@ public class RestConstants {
 	 * wildcard match.
 	 */
 	public static String ALLOWED_IPS_GLOBAL_PROPERTY_NAME = MODULE_ID + ".allowedips";
+
+	public static String REQUIRE_SECURE_TRANSPORT_GLOBAL_PROPERTY_NAME = MODULE_ID + ".requireSecureTransport";
+
+	public static String AUTH_RATE_LIMIT_ENABLED_GLOBAL_PROPERTY_NAME = MODULE_ID + ".auth.rateLimit.enabled";
+
+	public static String AUTH_RATE_LIMIT_MAX_FAILURES_GLOBAL_PROPERTY_NAME = MODULE_ID + ".auth.rateLimit.maxFailures";
+
+	public static String AUTH_RATE_LIMIT_WINDOW_SECONDS_GLOBAL_PROPERTY_NAME = MODULE_ID + ".auth.rateLimit.windowSeconds";
+
+	public static String AUTH_RATE_LIMIT_LOCKOUT_SECONDS_GLOBAL_PROPERTY_NAME = MODULE_ID + ".auth.rateLimit.lockoutSeconds";
 	
 	/**
 	 * The version number for the first rest web services representations

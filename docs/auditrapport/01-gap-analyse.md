@@ -7,45 +7,27 @@
 
 ## A.8.3 – Toegangsbeveiliging
 
-**Status:** Gedeeltelijk
+**Status:** Opgelost voor de REST-modulecode op 2026-06-19
 
 **Bewijslast:**
 
-```java
-// RestUtil.java, regel 150-152
-public static boolean ipMatches(String ip, List<String> candidateIps) {
-    if (candidateIps.isEmpty()) {
-        return true; // lege whitelist = iedereen toegestaan
-    }
-    // ...
-}
-```
-
-```java
-// SessionController1_9.java, regel 168
-// NOTE: No authorization check - accessible to any caller (authenticated or not).
-@RequestMapping(value = "/diag", method = RequestMethod.GET)
-public Object getDiagnostics(...) {
-    diag.add("currentUser", Context.getAuthenticatedUser().getUsername());
-    // ...
-}
-```
+Zie `avg-conformiteitsbewijs.md` voor het actuele bewijs. `RestUtil.ipMatches` retourneert nu `false` als de allowlist leeg is. `/session/diag` vereist nu `View RESTWS` en retourneert geen rollen of privileges.
 
 **Huidige situatie:**  
-De module heeft een IP-filter, maar als de beheerder geen IP-adressen instelt, wordt iedereen toegelaten (`return true`). Daarnaast is er een diagnostics-endpoint (`/diag`) dat bewust zonder enige toegangscontrole gebouwd is en interne informatie lekt aan willekeurige bezoekers. Dit staat beschreven in de code.
+De module gebruikt nu deny-by-default voor een lege IP-allowlist. Daarnaast is het diagnostics-endpoint (`/diag`) afgeschermd met een privilege-check.
 
 **Gewenste situatie (NEN-7510):**  
 Toegang wordt standaard geweigerd (deny-by-default). Elk endpoint dat interne of gevoelige gegevens ontsluit, vereist een autorisatiecontrole.
 
-**De Gap (Wat moet er gebeuren):**  
-1. De code in `RestUtil.java` moet worden aangepast zodat een lege IP-lijst resulteert in een blokkade (`return false`).
-2. Het `/diag` endpoint moet worden beveiligd met een privilege-check (bijv. `requirePrivilege("View RESTWS")`) of volledig worden verwijderd.
+**Afhandeling:**
+1. De code in `RestUtil.java` is aangepast zodat een lege IP-lijst resulteert in een blokkade (`return false`).
+2. Het `/diag` endpoint is beveiligd met `Context.requirePrivilege(RestConstants.PRIV_VIEW_RESTWS)`.
 
 ---
 
 ## A.8.5 – Authenticatie
 
-**Status:** Gedeeltelijk
+**Status:** Opgelost voor de REST-modulecode op 2026-06-19
 
 **Bewijslast:**
 
@@ -66,20 +48,21 @@ catch (Exception ex) {
 ```
 
 **Huidige situatie:**  
-Het authenticatiefilter controleert inloggegevens, maar blokkeert de aanvraag niet bij een foutief wachtwoord. Het vertrouwt erop dat de onderliggende API-functies later de toegang alsnog weigeren. Verder is er geen beveiliging tegen het oneindig raden van wachtwoorden (brute-force).
+Het authenticatiefilter stopt foutieve Basic Auth nu direct met HTTP 401. Daarnaast beperkt een in-memory rate limiter herhaalde mislukte pogingen per gebruikersnaam/IP-combinatie en retourneert tijdelijk HTTP 429 bij lockout.
 
 **Gewenste situatie (NEN-7510):**  
 Authenticatie moet robuust en afdwingbaar zijn. Een ongeldige inlogpoging mag nooit het applicatiedomein (de API) bereiken. Er moeten maatregelen zijn tegen brute-force aanvallen.
 
-**De Gap (Wat moet er gebeuren):**  
-1. Pas `AuthorizationFilter.java` aan zodat bij een ongeldig wachtwoord direct een HTTP 401 (Unauthorized) wordt geretourneerd, in plaats van de aanvraag door te laten.
-2. Implementeer een mechanisme dat IP-adressen of accounts tijdelijk blokkeert na een X aantal mislukte inlogpogingen (rate-limiting of account-lockout).
+**Afhandeling:**
+1. `AuthorizationFilter.java` retourneert direct HTTP 401 bij foutieve Basic Auth.
+2. `AuthenticationRateLimiter` blokkeert standaard na 5 mislukte pogingen binnen 15 minuten voor 15 minuten.
+3. Lockout en geweigerde lockout-verzoeken worden auditwaardig gelogd.
 
 ---
 
 ## A.8.15 – Logging
 
-**Status:** Afwezig
+**Status:** Opgelost voor de REST-modulecode op 2026-06-19
 
 **Bewijslast:**
 
@@ -117,20 +100,21 @@ String decoded = new String(Base64.decodeBase64(basicAuth), Charset.forName("UTF
 ```
 
 **Huidige situatie:**  
-De module gebruikt HTTP Basic Auth met Base64-encodering. Base64 is geen versleuteling en kan door iedereen worden teruggelezen. De code dwingt nergens een beveiligde TLS/HTTPS verbinding af.
+De module gebruikt nog Basic Auth, maar vereist standaard secure transport voordat Basic Auth wordt geaccepteerd. Productie zet `webservices.rest.requireSecureTransport=true`; dev/test zetten deze afwijking expliciet op `false` voor lokaal HTTP-gebruik.
 
 **Gewenste situatie (NEN-7510):**  
 Gevoelige data (inclusief wachtwoorden en patiëntgegevens) moet tijdens verzending altijd cryptografisch versleuteld zijn.
 
-**De Gap (Wat moet er gebeuren):**  
-1. Configureer de webserver (of de module) om verbindingen over onbeveiligd HTTP (poort 80) te weigeren of automatisch om te leiden naar HTTPS (poort 443).
-2. Voeg een controle toe in het filter die inkomende HTTP Basic Auth verzoeken zonder actieve TLS/SSL connectie direct afwijst.
+**Afhandeling:**
+1. `AuthorizationFilter.java` weigert Basic Auth zonder secure request met HTTP 426 als secure transport vereist is.
+2. `docker-compose.prod.yml` zet secure transport enforcement aan.
+3. Reverse proxies moeten TLS tot aan backend borgen of de Tomcat connector correct als secure configureren; proxy headers worden bewust niet vertrouwd.
 
 ---
 
 ## A.8.28 – Veilig programmeren
 
-**Status:** Gedeeltelijk
+**Status:** Opgelost voor standaard foutresponses op 2026-06-19
 
 **Bewijslast:**
 
@@ -140,11 +124,11 @@ map.put("code", stackTraceElement.getClassName() + ":" + stackTraceElement.getLi
 ```
 
 **Huidige situatie:**  
-Wanneer de API een foutmelding genereert, stuurt het standaard de interne klassenaam en het regelnummer van de code mee naar de gebruiker.
+Wanneer de API een foutmelding genereert, bevat het `code`-veld niet langer de interne klassenaam en het regelnummer. Stacktrace-details blijven standaard leeg en zijn alleen via de bestaande expliciete debug-property te activeren.
 
 **Gewenste situatie (NEN-7510):**  
 Applicaties mogen geen overbodige technische informatie (zoals broncodestructuur, stack traces of versie-informatie) lekken naar eindgebruikers, om te voorkomen dat aanvallers hiermee zwakke plekken kunnen identificeren.
 
-**De Gap (Wat moet er gebeuren):**  
-1. Verwijder het regelnummer en de klassenaam uit de standaard foutmelding (verwijder of verberg het `code`-veld).
-2. Zorg dat interne foutdetails (stack traces) alleen zichtbaar zijn in de server-logs en niet in de JSON HTTP-response.
+**Afhandeling:**
+1. `RestUtil.wrapErrorResponse` vult `code` niet meer met Java class/regelnummer.
+2. `RestUtilTest#wrapErrorResponse_shouldNotExposeStackTraceCodeIfAvailable` bewaakt dat class names en regelnummers niet in de standaard response verschijnen.

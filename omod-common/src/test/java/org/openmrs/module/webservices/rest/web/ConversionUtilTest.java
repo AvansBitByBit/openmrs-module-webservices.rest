@@ -13,6 +13,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -200,6 +201,31 @@ public class ConversionUtilTest extends BaseModuleWebContextSensitiveTest {
 		assertThat((Integer) ConversionUtil.convert(5d, Integer.class), is(5));
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	public void convert_shouldConvertParameterizedListElements() throws Exception {
+		Field field = CollectionConversionHolder.class.getDeclaredField("integerValues");
+
+		List<Integer> converted = (List<Integer>) ConversionUtil.convert(Arrays.asList("5", "8"), field.getGenericType());
+
+		assertThat(converted, is(Arrays.asList(5, 8)));
+	}
+
+	@Test
+	public void convert_shouldConvertStringUsingValueOfMethod() throws Exception {
+		assertThat((Boolean) ConversionUtil.convert("true", Boolean.class), is(true));
+	}
+
+	@Test
+	public void convert_shouldConvertDoubleToFloat() throws Exception {
+		assertThat((Float) ConversionUtil.convert(5d, Float.class), is(5f));
+	}
+
+	@Test
+	public void convert_shouldConvertBooleanToString() throws Exception {
+		assertThat((String) ConversionUtil.convert(true, String.class), is("true"));
+	}
+
 	/**
 	 * @verifies resolve TypeVariables to actual type
 	 * @see ConversionUtil#convert(Object, java.lang.reflect.Type)
@@ -383,6 +409,11 @@ public class ConversionUtilTest extends BaseModuleWebContextSensitiveTest {
 	}
 
 	public class Temp {}
+
+	public static class CollectionConversionHolder {
+
+		private List<Integer> integerValues;
+	}
 
 	public class ChildGenericType_Int extends BaseGenericType<Integer> {}
 

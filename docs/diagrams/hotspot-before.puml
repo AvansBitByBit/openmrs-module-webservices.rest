@@ -1,0 +1,41 @@
+@startuml
+title Hotspot before - RestServiceImpl god-class
+
+package "org.openmrs.module.webservices.rest.web.api.impl" {
+  class RestServiceImpl {
+    +getResourceByName(name)
+    +getResourceBySupportedClass(type)
+    +getResourceHandlers()
+    +getSearchHandler(resource, parameters)
+    +getSearchHandlers(resource)
+    +initialize()
+    -initializeResources()
+    -getResourceMetadata(resource)
+    -initializeSearchHandlers()
+    -addSearchHandler(...)
+    -eliminateCandidateSearchHandlersWithMissingRequiredParameters(...)
+  }
+}
+
+interface RestService
+class OpenmrsClassScanner
+class RestHelperService
+class Resource
+class SearchHandler
+class DelegatingSubclassHandler
+
+RestServiceImpl ..|> RestService
+RestServiceImpl --> OpenmrsClassScanner : scans resources
+RestServiceImpl --> RestHelperService : gets handlers
+RestServiceImpl --> Resource : creates/caches
+RestServiceImpl --> SearchHandler : indexes/selects
+RestServiceImpl --> DelegatingSubclassHandler : appends handlers
+
+note right of RestServiceImpl
+  One class mixes:
+  - service facade
+  - resource registry
+  - search handler registry
+  - cache reset/async init
+end note
+@enduml

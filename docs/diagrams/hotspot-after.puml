@@ -1,0 +1,58 @@
+@startuml
+title Hotspot after - RestServiceImpl as facade
+
+package "org.openmrs.module.webservices.rest.web.api.impl" {
+  class RestServiceImpl {
+    +getResourceByName(name)
+    +getResourceBySupportedClass(type)
+    +getResourceHandlers()
+    +getSearchHandler(resource, parameters)
+    +getSearchHandlers(resource)
+    +initialize()
+    -getResourceRegistry()
+    -getSearchHandlerRegistry()
+  }
+
+  class ResourceRegistry <<package-private>> {
+    ~initialize()
+    ~getResourceByName(name)
+    ~getResourceBySupportedClass(type)
+    ~getResourceHandlers()
+  }
+
+  class SearchHandlerRegistry <<package-private>> {
+    ~initialize()
+    ~getSearchHandler(resource, parameters)
+    ~getSearchHandlers(resource)
+    ~getAllSearchHandlers()
+  }
+}
+
+interface RestService
+class OpenmrsClassScanner
+class RestHelperService
+
+RestServiceImpl ..|> RestService
+RestServiceImpl *-- ResourceRegistry : lazy owns
+RestServiceImpl *-- SearchHandlerRegistry : lazy owns
+ResourceRegistry --> OpenmrsClassScanner
+ResourceRegistry --> RestHelperService
+SearchHandlerRegistry --> RestHelperService
+
+note right of RestServiceImpl
+  Public API unchanged.
+  The facade now coordinates.
+end note
+
+note bottom of ResourceRegistry
+  Resource discovery:
+  annotations, version filtering,
+  order conflicts, class/name lookup.
+end note
+
+note bottom of SearchHandlerRegistry
+  Search lookup:
+  id index, parameter matching,
+  required parameters, default/ambiguous selection.
+end note
+@enduml

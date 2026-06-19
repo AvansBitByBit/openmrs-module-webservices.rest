@@ -28,6 +28,7 @@ import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.api.RestService;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.FullRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
@@ -268,6 +269,14 @@ public class PatientResource1_8 extends DataDelegatingCrudResource<Patient> {
 	/**
 	 * @see org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource#newDelegate()
 	 */
+	@Override
+	public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+		Object result = super.retrieve(uuid, context);
+		SecurityAuditLogger.getInstance().patientRecordViewed(SecurityAuditLogger.currentActor(), uuid,
+		    SecurityAuditLogger.where(context), "REST patient dossier inzage");
+		return result;
+	}
+	
 	@Override
 	public Patient newDelegate() {
 		return new Patient();

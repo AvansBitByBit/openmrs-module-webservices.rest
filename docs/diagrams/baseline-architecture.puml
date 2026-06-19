@@ -1,0 +1,38 @@
+@startuml
+title Baseline architectuur openmrs-module-webservices.rest
+
+package "webservices.rest parent" {
+  package "omod-common" {
+    [REST controllers]
+    [RestService API]
+    [Resource/Converter framework]
+    [Swagger docs generator]
+    [Shared web utilities]
+  }
+
+  package "omod" {
+    [OpenMRS versioned resources]
+    [Concrete controllers]
+    [OpenMRS helper wrappers]
+  }
+
+  package "integration-tests" {
+    [Rest-Assured live API tests]
+  }
+}
+
+[Concrete controllers] --> [REST controllers]
+[OpenMRS versioned resources] --> [Resource/Converter framework]
+[OpenMRS versioned resources] --> [RestService API]
+[Swagger docs generator] --> [Resource/Converter framework]
+[Rest-Assured live API tests] ..> [Concrete controllers] : HTTP against running OpenMRS
+
+cloud "OpenMRS API/Web" {
+  [Context]
+  [OpenMRS services]
+}
+
+[REST controllers] --> [Context]
+[Resource/Converter framework] --> [Context]
+[OpenMRS versioned resources] --> [OpenMRS services]
+@enduml

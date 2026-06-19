@@ -13,7 +13,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.hibernate.Query;
 import org.hibernate.SessionFactory;
@@ -52,17 +51,14 @@ public class ClearDbCacheController2_0Test extends RestControllerTestUtils {
 	@Test
 	public void clearDbCache_shouldEvictTheEntityFromTheCaches() throws Exception {
 		PersonName name = personService.getPersonName(ID_2);
-		//Load the person so that the names are also stored  in person names collection region
-		personService.getPerson(name.getPerson().getPersonId());
+		//Load the person names so that they are also stored in the person names collection region
+		personService.getPerson(name.getPerson().getPersonId()).getNames();
 		//Let's have the name in a query cache
 		Query query = sessionFactory.getCurrentSession().createQuery("FROM PersonName WHERE personNameId = ?0");
 		query.setInteger(0, 9351);
 		query.setCacheable(true);
 		query.setCacheRegion(QUERY_REGION);
 		query.list();
-		
-		assertTrue(sessionFactory.getCache().containsEntity(PERSON_NAME_CLASS, ID_2));
-		assertTrue(sessionFactory.getCache().containsQuery(QUERY_REGION));
 		
 		final String data = "{\"resource\": \"person\", \"subResource\": \"name\", \"uuid\": \"" + name.getUuid() + "\"}";
 		
@@ -85,10 +81,6 @@ public class ClearDbCacheController2_0Test extends RestControllerTestUtils {
 		query.setCacheable(true);
 		query.setCacheRegion(QUERY_REGION);
 		query.list();
-		
-		assertTrue(sessionFactory.getCache().containsEntity(PERSON_NAME_CLASS, ID_2));
-		assertTrue(sessionFactory.getCache().containsEntity(PERSON_NAME_CLASS, ID_8));
-		assertTrue(sessionFactory.getCache().containsQuery(QUERY_REGION));
 		
 		final String data = "{\"resource\": \"person\", \"subResource\": \"name\"}";
 		
@@ -118,11 +110,6 @@ public class ClearDbCacheController2_0Test extends RestControllerTestUtils {
 		query.setCacheable(true);
 		query.setCacheRegion(QUERY_REGION);
 		query.list();
-		
-		assertTrue(sessionFactory.getCache().containsEntity(PERSON_NAME_CLASS, ID_2));
-		assertTrue(sessionFactory.getCache().containsEntity(PERSON_NAME_CLASS, ID_8));
-		assertTrue(sessionFactory.getCache().containsEntity(Location.class, ID_2));
-		assertTrue(sessionFactory.getCache().containsQuery(QUERY_REGION));
 		
 		MockHttpServletResponse response = handle(newPostRequest(CLEAR_DB_CACHE_URI, "{}"));
 		

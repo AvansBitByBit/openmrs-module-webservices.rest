@@ -18,12 +18,14 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.RestUtil;
 import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.FullRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
@@ -62,6 +64,22 @@ public class RoleResource1_8 extends MetadataDelegatingCrudResource<Role> {
 	@Override
 	public Role save(Role delegate) {
 		return Context.getUserService().saveRole(delegate);
+	}
+	
+	@Override
+	public Object create(SimpleObject propertiesToCreate, RequestContext context) throws ResponseException {
+		Object result = super.create(propertiesToCreate, context);
+		SecurityAuditLogger.getInstance().roleOrRightsChanged(SecurityAuditLogger.currentActor(),
+		    "new role", SecurityAuditLogger.where(context), "REST role created");
+		return result;
+	}
+	
+	@Override
+	public Object update(String uuid, SimpleObject propertiesToUpdate, RequestContext context) throws ResponseException {
+		Object result = super.update(uuid, propertiesToUpdate, context);
+		SecurityAuditLogger.getInstance().roleOrRightsChanged(SecurityAuditLogger.currentActor(), uuid,
+		    SecurityAuditLogger.where(context), "REST role or privilege updated");
+		return result;
 	}
 	
 	/**

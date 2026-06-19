@@ -1,0 +1,223 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Rest Web Services                                                  [pom]
+[INFO] Rest Web Services Common OMOD                                      [jar]
+[INFO] Rest Web Services OMOD                                             [jar]
+[INFO] Rest Web Services Integration Tests                                [jar]
+[INFO] 
+[INFO] ----------------< org.openmrs.module:webservices.rest >-----------------
+[INFO] Building Rest Web Services 3.2.0                                   [1/4]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[WARNING] Ignoring incompatible plugin version 4.0.0-beta-1: The plugin org.apache.maven.plugins:maven-jar-plugin:4.0.0-beta-1 requires Maven version 4.0.0-beta-3
+[INFO] Latest version of plugin org.apache.maven.plugins:maven-jar-plugin failed compatibility check
+[INFO] Looking for compatible RELEASE version of plugin org.apache.maven.plugins:maven-jar-plugin
+[INFO] Selected plugin org.apache.maven.plugins:maven-jar-plugin:3.5.0
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ webservices.rest ---
+[INFO] 
+[INFO] --- java-formatter:0.4:format (default) @ webservices.rest ---
+[INFO] Using 'UTF-8' encoding to format source files.
+[INFO] Number of files to be formatted: 0
+[INFO] 
+[INFO] --- license:3.0:format (format-license-header) @ webservices.rest ---
+[INFO] Updating license headers...
+[INFO] 
+[INFO] ----------< org.openmrs.module:webservices.rest-omod-common >-----------
+[INFO] Building Rest Web Services Common OMOD 3.2.0                       [2/4]
+[INFO]   from omod-common\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ webservices.rest-omod-common ---
+[INFO] Deleting C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\target
+[INFO] 
+[INFO] --- jacoco:0.8.13:prepare-agent (prepare-agent) @ webservices.rest-omod-common ---
+[INFO] argLine set to -javaagent:C:\\Users\\yazan\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.13\\org.jacoco.agent-0.8.13-runtime.jar=destfile=C:\\Users\\yazan\\OneDrive\\Bureaublad\\2.4\\2.4lu2\\openmrs-module-webservices.rest\\omod-common\\target\\jacoco.exec,includes=org/openmrs/**
+[INFO] 
+[INFO] --- java-formatter:0.4:format (default) @ webservices.rest-omod-common ---
+[INFO] Using 'UTF-8' encoding to format source files.
+[INFO] Number of files to be formatted: 159
+[INFO] Successfully formatted: 0 file(s)
+[INFO] Fail to format        : 0 file(s)
+[INFO] Skipped               : 159 file(s)
+[INFO] Approximate time taken: 0s
+[INFO] 
+[INFO] --- license:3.0:format (format-license-header) @ webservices.rest-omod-common ---
+[INFO] Updating license headers...
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ webservices.rest-omod-common ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\src\main\webapp
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\src\main\webapp
+[INFO] The encoding used to copy filtered properties files have not been set. This means that the same encoding will be used to copy filtered properties files as when copying other filtered resources. This might not be what you want! Run your build with --debug to see which files might be affected. Read more at https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ webservices.rest-omod-common ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 124 source files with javac [debug target 8] to target\classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[WARNING] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/rest/web/ConversionUtil.java:[194,32] Float(double) in java.lang.Float has been deprecated and marked for removal
+[WARNING] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/rest/web/RestUtil.java:[518,40] Integer(java.lang.String) in java.lang.Integer has been deprecated and marked for removal
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/helper/ServerLogActionWrapper.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/helper/ServerLogActionWrapper.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/rest/web/resource/api/SearchQuery.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/main/java/org/openmrs/module/webservices/rest/web/resource/api/SearchQuery.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ webservices.rest-omod-common ---
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\src\test\resources
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ webservices.rest-omod-common ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 35 source files with javac [debug target 8] to target\test-classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/test/java/org/openmrs/module/webservices/rest/web/ConversionUtilTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/test/java/org/openmrs/module/webservices/rest/web/ConversionUtilTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/test/java/org/openmrs/module/webservices/rest/test/Util.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod-common/src/test/java/org/openmrs/module/webservices/rest/test/Util.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ webservices.rest-omod-common ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ webservices.rest-omod-common ---
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\target\webservices.rest-omod-common-3.2.0.jar
+[INFO] 
+[INFO] --- jar:3.4.1:test-jar (default) @ webservices.rest-omod-common ---
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod-common\target\webservices.rest-omod-common-3.2.0-tests.jar
+[INFO] 
+[INFO] --------------< org.openmrs.module:webservices.rest-omod >--------------
+[INFO] Building Rest Web Services OMOD 3.2.0                              [3/4]
+[INFO]   from omod\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ webservices.rest-omod ---
+[INFO] Deleting C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target
+[INFO] 
+[INFO] --- buildnumber:1.1:create (default) @ webservices.rest-omod ---
+[INFO] Checking for local modifications: skipped.
+[INFO] Updating project files from SCM: skipped.
+[INFO] ShortRevision tag detected. The value is '6'.
+[INFO] Executing: cmd.exe /X /C "git rev-parse --verify --short=6 HEAD"
+[INFO] Working directory: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod
+[INFO] Storing buildNumber: 6a36c8 at timestamp: 1781739306887
+[INFO] ShortRevision tag detected. The value is '6'.
+[INFO] Executing: cmd.exe /X /C "git rev-parse --verify --short=6 HEAD"
+[INFO] Working directory: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod
+[INFO] Storing buildScmBranch: UNKNOWN
+[INFO] 
+[INFO] --- jacoco:0.8.13:prepare-agent (prepare-agent) @ webservices.rest-omod ---
+[INFO] argLine set to -javaagent:C:\\Users\\yazan\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.13\\org.jacoco.agent-0.8.13-runtime.jar=destfile=C:\\Users\\yazan\\OneDrive\\Bureaublad\\2.4\\2.4lu2\\openmrs-module-webservices.rest\\omod\\target\\jacoco.exec,includes=org/openmrs/**
+[INFO] 
+[INFO] --- java-formatter:0.4:format (default) @ webservices.rest-omod ---
+[INFO] Using 'UTF-8' encoding to format source files.
+[INFO] Number of files to be formatted: 512
+[INFO] Successfully formatted: 0 file(s)
+[INFO] Fail to format        : 0 file(s)
+[INFO] Skipped               : 512 file(s)
+[INFO] Approximate time taken: 1s
+[INFO] 
+[INFO] --- license:3.0:format (format-license-header) @ webservices.rest-omod ---
+[INFO] Updating license headers...
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ webservices.rest-omod ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 7 resources from src\main\webapp to target\classes\web\module
+[INFO] Copying 10 resources from src\main\webapp to target\classes\web\module
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ webservices.rest-omod ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 221 source files with javac [debug target 8] to target\classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[WARNING] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/rest/web/v1_0/resource/openmrs1_8/ObsResource1_8.java:[325,89] Integer(java.lang.String) in java.lang.Integer has been deprecated and marked for removal
+[WARNING] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/rest/web/v1_0/search/openmrs2_3/OrderSearchHandler2_3.java:[169,110] Boolean(java.lang.String) in java.lang.Boolean has been deprecated and marked for removal
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/helper/openmrs2_4/ServerLogActionWrapper2_4.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/helper/openmrs2_4/ServerLogActionWrapper2_4.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/rest/web/v1_0/controller/openmrs1_9/ConceptReferenceController1_9.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/main/java/org/openmrs/module/webservices/rest/web/v1_0/controller/openmrs1_9/ConceptReferenceController1_9.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ webservices.rest-omod ---
+[INFO] Copying 42 resources from src\test\resources to target\test-classes
+[INFO] Copying 9 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ webservices.rest-omod ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 291 source files with javac [debug target 8] to target\test-classes
+[WARNING] bootstrap class path not set in conjunction with -source 8
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/test/java/org/openmrs/module/webservices/rest/doc/SwaggerSpecificationCreatorTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/test/java/org/openmrs/module/webservices/rest/doc/SwaggerSpecificationCreatorTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/test/java/org/openmrs/module/webservices/rest/web/ConversionUtil1_12Test.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/Users/yazan/OneDrive/Bureaublad/2.4/2.4lu2/openmrs-module-webservices.rest/omod/src/test/java/org/openmrs/module/webservices/rest/web/ConversionUtil1_12Test.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ webservices.rest-omod ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- dependency:3.7.0:unpack-dependencies (Expand resources) @ webservices.rest-omod ---
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ webservices.rest-omod ---
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\webservices.rest-3.2.0.6a36c8.jar
+[INFO] 
+[INFO] --- openmrs:1.0.1:package-module (pack) @ webservices.rest-omod ---
+[INFO] Packaging OpenMRS module
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\webservices.rest-3.2.0.6a36c8.omod
+[INFO] 
+[INFO] --- jar:3.4.1:test-jar (default) @ webservices.rest-omod ---
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\omod\target\webservices.rest-3.2.0.6a36c8-tests.jar
+[INFO] 
+[INFO] -------< org.openmrs.module:webservices.rest-integration-tests >--------
+[INFO] Building Rest Web Services Integration Tests 3.2.0                 [4/4]
+[INFO]   from integration-tests\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ webservices.rest-integration-tests ---
+[INFO] Deleting C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\target
+[INFO] 
+[INFO] --- java-formatter:0.4:format (default) @ webservices.rest-integration-tests ---
+[INFO] Using 'UTF-8' encoding to format source files.
+[INFO] Number of files to be formatted: 5
+[INFO] Successfully formatted: 0 file(s)
+[INFO] Fail to format        : 0 file(s)
+[INFO] Skipped               : 5 file(s)
+[INFO] Approximate time taken: 0s
+[INFO] 
+[INFO] --- license:3.0:format (format-license-header) @ webservices.rest-integration-tests ---
+[INFO] Updating license headers...
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ webservices.rest-integration-tests ---
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\src\main\webapp
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\src\main\webapp
+[INFO] 
+[INFO] --- compiler:3.6.2:compile (default-compile) @ webservices.rest-integration-tests ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ webservices.rest-integration-tests ---
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\src\test\resources
+[INFO] skip non existing resourceDirectory C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.2:testCompile (default-testCompile) @ webservices.rest-integration-tests ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 5 source files to C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ webservices.rest-integration-tests ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ webservices.rest-integration-tests ---
+[WARNING] JAR will be empty - no content was marked for inclusion!
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\target\webservices.rest-integration-tests-3.2.0.jar
+[INFO] 
+[INFO] --- jar:3.4.1:test-jar (default) @ webservices.rest-integration-tests ---
+[INFO] Building jar: C:\Users\yazan\OneDrive\Bureaublad\2.4\2.4lu2\openmrs-module-webservices.rest\integration-tests\target\webservices.rest-integration-tests-3.2.0-tests.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Rest Web Services 3.2.0:
+[INFO] 
+[INFO] Rest Web Services .................................. SUCCESS [  1.060 s]
+[INFO] Rest Web Services Common OMOD ...................... SUCCESS [  8.539 s]
+[INFO] Rest Web Services OMOD ............................. SUCCESS [ 14.113 s]
+[INFO] Rest Web Services Integration Tests ................ SUCCESS [  2.191 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  26.219 s
+[INFO] Finished at: 2026-06-18T01:35:21+02:00
+[INFO] ------------------------------------------------------------------------

@@ -1,152 +1,70 @@
 Gap-analyse NEN-7510:2024-2
 
 Module: openmrs-module-webservices.rest
-Datum:  2026-06-11
+Datum:  2026-06-19
 
 ================================================================================
 
 A.8.3 - Toegangsbeveiliging
 
-Status: Gedeeltelijk
+Status: Opgelost voor de REST-modulecode op 2026-06-19
 
-Bewijslast:
-    // RestUtil.java, regel 150-152
-    public static boolean ipMatches(String ip, List<String> candidateIps) {
-        if (candidateIps.isEmpty()) {
-            return true; // lege whitelist = iedereen toegestaan
-        }
-
-    // SessionController1_9.java, regel 168
-    // NOTE: No authorization check - accessible to any caller (authenticated or not).
-    @RequestMapping(value = "/diag", method = RequestMethod.GET)
-    public Object getDiagnostics(...) {
-        diag.add("currentUser", Context.getAuthenticatedUser().getUsername());
-        // ...
-    }
-
-Huidige situatie:
-De module heeft een IP-filter, maar als de beheerder geen IP-adressen instelt,
-wordt iedereen toegelaten (return true). Daarnaast is er een diagnostics-endpoint
-(/diag) dat bewust zonder enige toegangscontrole gebouwd is en interne informatie
-lekt aan willekeurige bezoekers.
-
-Gewenste situatie (NEN-7510):
-Toegang wordt standaard geweigerd (deny-by-default). Elk endpoint dat interne
-of gevoelige gegevens ontsluit, vereist een autorisatiecontrole.
-
-De Gap (Wat moet er gebeuren):
-1. De code in RestUtil.java moet worden aangepast zodat een lege IP-lijst
-   resulteert in een blokkade (return false).
-2. Het /diag endpoint moet worden beveiligd met een privilege-check (bijv.
-   requirePrivilege("View RESTWS")) of volledig worden verwijderd.
+Bewijs:
+- RestUtil.ipMatches retourneert false als de allowlist leeg is.
+- /session/diag vereist View RESTWS.
+- Diagnostics retourneert geen rollen of privileges.
 
 ================================================================================
 
 A.8.5 - Authenticatie
 
-Status: Gedeeltelijk
+Status: Opgelost voor de REST-modulecode op 2026-06-19
 
-Bewijslast:
-    // AuthorizationFilter.java, regel 32-36
-    // Filter intended for all /ws/rest calls that allows the user to authenticate
-    // via Basic authentication. (It will not fail on invalid or missing credentials.
-    // We count on the API to throw exceptions if an unauthenticated user tries to
-    // do something they are not allowed to do.)
+Bewijs:
+- AuthorizationFilter stopt foutieve Basic Auth direct met HTTP 401.
+- AuthenticationRateLimiter blokkeert standaard na 5 mislukte pogingen binnen 15 minuten.
+- Lockout en geweigerde lockout-verzoeken worden auditwaardig gelogd.
 
-Huidige situatie:
-Het authenticatiefilter controleert inloggegevens, maar blokkeert de aanvraag
-niet bij een foutief wachtwoord. Het vertrouwt erop dat de onderliggende API-functies
-later de toegang alsnog weigeren. Verder is er geen beveiliging tegen het
-oneindig raden van wachtwoorden (brute-force).
-
-Gewenste situatie (NEN-7510):
-Authenticatie moet robuust en afdwingbaar zijn. Een ongeldige inlogpoging mag
-nooit het applicatiedomein (de API) bereiken. Er moeten maatregelen zijn tegen
-brute-force aanvallen.
-
-De Gap (Wat moet er gebeuren):
-1. Pas AuthorizationFilter.java aan zodat bij een ongeldig wachtwoord direct een
-   HTTP 401 (Unauthorized) wordt geretourneerd, in plaats van de aanvraag door
-   te laten.
-2. Implementeer een mechanisme dat IP-adressen of accounts tijdelijk blokkeert
-   na een X aantal mislukte inlogpogingen (rate-limiting of account-lockout).
+Resterend operationeel aandachtspunt:
+- In multi-node productie is een gedeelde limiter of edge/WAF rate limiting nodig.
 
 ================================================================================
 
 A.8.15 - Logging
 
-Status: Afwezig
+Status: Opgelost voor de REST-modulecode op 2026-06-19
 
-Bewijslast:
-    // AuthorizationFilter.java, regel 113
-    log.debug("authentication exception ", ex);
+Bewijs:
+- SecurityAuditLogger logt security-events op WARN/ERROR.
+- FileAuditLogWriter schrijft auditregels append-only naar bestand.
+- Auditregels redigeren wachtwoorden, tokens, cookies, BSN-patronen, diagnose en medicatie.
 
-    // ServerLogActionWrapper1_8.java, regel 20
-    return (MemoryAppender) Logger.getRootLogger().getAppender("MEMORY_APPENDER");
-
-Huidige situatie:
-Mislukte inlogpogingen worden alleen gelogd op DEBUG-niveau, wat op een
-productieserver normaal gesproken onzichtbaar is. Daarnaast worden logs alleen
-tijdelijk in het werkgeheugen (RAM) opgeslagen; bij een herstart is het
-volledige logboek leeg.
-
-Gewenste situatie (NEN-7510):
-Relevante beveiligingsgebeurtenissen (zoals inloggen of geweigerde toegang)
-moeten altijd en permanent worden vastgelegd ten behoeve van forensisch onderzoek.
-
-De Gap (Wat moet er gebeuren):
-1. Verhoog het log-niveau van authenticatiefouten naar WARN of ERROR zodat
-   deze in productie opvallen.
-2. Sla beveiligingslogs persistent op schijf op via een robuuste appender (bijv.
-   een FileAppender of integratie met een centraal loggingsysteem), zodat ze
-   na een server-herstart behouden blijven.
+Resterend operationeel aandachtspunt:
+- Logpad, bestandsrechten, rotatie en bewaartermijn moeten per deployment worden ingericht.
 
 ================================================================================
 
 A.8.24 - Gebruik van cryptografie
 
-Status: Afwezig
+Status: Opgelost voor de REST-modulecode op 2026-06-19
 
-Bewijslast:
-    // AuthorizationFilter.java, regel 99
-    String decoded = new String(Base64.decodeBase64(basicAuth), Charset.forName("UTF-8"));
+Bewijs:
+- AuthorizationFilter weigert Basic Auth zonder secure request met HTTP 426 als secure transport vereist is.
+- docker-compose.prod.yml zet webservices.rest.requireSecureTransport op true.
+- docker-compose.dev.yml en docker-compose.test.yml zetten lokale HTTP-afwijking expliciet op false.
 
-Huidige situatie:
-De module gebruikt HTTP Basic Auth met Base64-encodering. Base64 is geen
-versleuteling en kan door iedereen worden teruggelezen. De code dwingt nergens
-een beveiligde TLS/HTTPS verbinding af.
-
-Gewenste situatie (NEN-7510):
-Gevoelige data (inclusief wachtwoorden en patientgegevens) moet tijdens
-verzending altijd cryptografisch versleuteld zijn.
-
-De Gap (Wat moet er gebeuren):
-1. Configureer de webserver (of de module) om verbindingen over onbeveiligd HTTP
-   (poort 80) te weigeren of automatisch om te leiden naar HTTPS (poort 443).
-2. Voeg een controle toe in het filter die inkomende HTTP Basic Auth verzoeken
-   zonder actieve TLS/SSL connectie direct afwijst.
+Resterend operationeel aandachtspunt:
+- Reverse proxies moeten TLS tot aan backend borgen of de Tomcat connector correct als secure configureren.
 
 ================================================================================
 
 A.8.28 - Veilig programmeren
 
-Status: Gedeeltelijk
+Status: Opgelost voor standaard foutresponses op 2026-06-19
 
-Bewijslast:
-    // RestUtil.java, regel 855
-    map.put("code", stackTraceElement.getClassName() + ":" + stackTraceElement.getLineNumber());
+Bewijs:
+- RestUtil.wrapErrorResponse vult code niet meer met Java class/regelnummer.
+- RestUtilTest bewaakt dat class names en regelnummers niet in de standaard response verschijnen.
 
-Huidige situatie:
-Wanneer de API een foutmelding genereert, stuurt het standaard de interne
-klassenaam en het regelnummer van de code mee naar de gebruiker.
-
-Gewenste situatie (NEN-7510):
-Applicaties mogen geen overbodige technische informatie (zoals broncodestructuur,
-stack traces of versie-informatie) lekken naar eindgebruikers, om te voorkomen
-dat aanvallers hiermee zwakke plekken kunnen identificeren.
-
-De Gap (Wat moet er gebeuren):
-1. Verwijder het regelnummer en de klassenaam uit de standaard foutmelding
-   (verwijder of verberg het code-veld).
-2. Zorg dat interne foutdetails (stack traces) alleen zichtbaar zijn in de
-   server-logs en niet in de JSON HTTP-response.
+Resterend operationeel aandachtspunt:
+- Stacktrace-details mogen alleen tijdelijk en gecontroleerd via debug-configuratie worden geactiveerd.

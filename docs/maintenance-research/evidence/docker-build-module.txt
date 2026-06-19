@@ -1,0 +1,1 @@
+error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.47/networks?filters=%7B%22name%22%3A%7B%22openmrs-module-webservicesrest_default%22%3Atrue%7D%7D": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.

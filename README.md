@@ -61,8 +61,11 @@ Prod requires explicit database secrets before startup:
 ```bash
 export OMRS_DB_PASSWORD="replace-me"
 export MYSQL_ROOT_PASSWORD="replace-me-root"
+export OMRS_REST_ALLOWED_IPS="127.0.0.1 ::1 10.0.0.0/8"
 docker compose -f docker-compose.prod.yml up --build
 ```
+
+Prod enables REST security hardening by default: explicit IP allowlist, secure transport required for Basic authentication, and authentication rate limiting. Dev/test compose files explicitly disable secure-transport enforcement so local HTTP remains usable.
 
 How it works:
 

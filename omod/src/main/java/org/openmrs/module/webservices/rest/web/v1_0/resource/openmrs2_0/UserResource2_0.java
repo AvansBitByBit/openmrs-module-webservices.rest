@@ -13,6 +13,7 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
+import org.openmrs.module.webservices.rest.web.audit.SecurityAuditLogger;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.v1_0.resource.openmrs1_8.UserResource1_8;
@@ -42,8 +43,13 @@ public class UserResource2_0 extends UserResource1_8 {
 	 */
 	@Override
 	public UserAndPassword1_8 save(UserAndPassword1_8 user) {
+		final boolean existingUser = user.getUser().getUserId() != null;
 		final User savedUser = createOrUpdateUser(user);
 		refreshAuthenticatedUserIfNeeded(savedUser);
+		if (existingUser && user.getUser().getRoles() != null) {
+			SecurityAuditLogger.getInstance().roleOrRightsChanged(SecurityAuditLogger.currentActor(), savedUser.getUuid(),
+			    SecurityAuditLogger.UNKNOWN, "REST user role assignment updated");
+		}
 		return new UserAndPassword1_8(savedUser);
 	}
 

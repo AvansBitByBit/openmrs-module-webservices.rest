@@ -34,11 +34,11 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 
 	/**
 	 * @see RestUtil#ipMatches(String,List)
-	 * @verifies return true if list is empty
+	 * @verifies return false if list is empty
 	 */
 	@Test
-	public void ipMatches_shouldReturnTrueIfListIsEmpty() throws Exception {
-		Assert.assertTrue(RestUtil.ipMatches("10.0.0.0", new ArrayList<String>()));
+	public void ipMatches_shouldReturnFalseIfListIsEmpty() throws Exception {
+		Assert.assertFalse(RestUtil.ipMatches("10.0.0.0", new ArrayList<String>()));
 	}
 
 	/**
@@ -229,17 +229,19 @@ public class RestUtilTest extends BaseModuleWebContextSensitiveTest {
 
 	/**
 	 * @see RestUtil#wrapErrorResponse(Exception,String)
-	 * @verifies set stack trace code if available
+	 * @verifies not expose stack trace code if available
 	 */
 	@Test
-	public void wrapErrorResponse_shouldSetStackTraceCodeAndDetailIfAvailable() throws Exception {
+	public void wrapErrorResponse_shouldNotExposeStackTraceCodeIfAvailable() throws Exception {
 		Exception apiException = new APIException("exceptionmessage");
 		apiException.setStackTrace(new StackTraceElement[] { new StackTraceElement("org.mypackage.myclassname", "methodName", "fileName", 149) });
 
 		SimpleObject returnObject = RestUtil.wrapErrorResponse(apiException, "wraperrorresponsemessage");
 
 		LinkedHashMap errorResponseMap = (LinkedHashMap) returnObject.get("error");
-		Assert.assertEquals("org.mypackage.myclassname:149", errorResponseMap.get("code"));
+		Assert.assertEquals("", errorResponseMap.get("code"));
+		Assert.assertFalse(errorResponseMap.toString().contains("org.mypackage.myclassname"));
+		Assert.assertFalse(errorResponseMap.toString().contains(":149"));
 	}
 
 	/**
