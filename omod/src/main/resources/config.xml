@@ -53,7 +53,7 @@
     <globalProperty>
         <property>@MODULE_ID@.allowedips</property>
         <defaultValue></defaultValue>
-        <description>A comma-separate list of IP addresses that are allowed to access the web services. An empty string allows everyone to access all ws. 
+        <description>A comma-separated list of IP addresses that are allowed to access the web services. An empty string denies REST access by default.
         IPs can be declared with bit masks e.g. 10.0.0.0/30 matches 10.0.0.0 - 10.0.0.3 and 10.0.0.0/24 matches 10.0.0.0 - 10.0.0.255.</description>
     </globalProperty>
 	<globalProperty>
@@ -63,8 +63,8 @@
 	</globalProperty>
 	<globalProperty>
 		<property>@MODULE_ID@.enableStackTraceDetails</property>
-		<defaultValue>true</defaultValue>
-		<description>If the value of this setting is "true", then the details of the stackTrace would be shown in the error response. However, the recommendation is to keep it as "false", from the Security perspective, to avoid leaking implementation details.</description>
+		<defaultValue>false</defaultValue>
+		<description>If the value of this setting is "true", stack trace details are shown in the error response. Keep this false by default and only enable it temporarily in controlled debug or test environments to avoid leaking implementation details.</description>
 	</globalProperty>
 
     <!-- DWR -->
