@@ -1,0 +1,98 @@
+name: Secure SCA (Trivy + CycloneDX SBOM)
+
+# Software Composition Analysis (SCA) conform NEN 7510 (informatiebeveiliging in de zorg,
+# gebaseerd op NEN-EN-ISO 27002). We genereren een CycloneDX-SBOM van alle Maven-modules,
+# scannen die met Trivy op bekende kwetsbaarheden en uploaden de resultaten (SARIF) naar
+# GitHub code scanning. De SBOM blijft bewaard als bewijslast (artifact).
+#
+# Let op: CodeQL ('default setup') verzorgt de SAST en blijft ongemoeid; deze workflow
+# uploadt onder een eigen category ('trivy-sca') zodat beide naast elkaar bestaan.
+
+on:
+  push:
+    branches:
+      - SCRUM-18
+      - SCRUM-15
+      - dev
+      - acceptance
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: sca-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sca:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      - name: Genereer CycloneDX JSON SBOM (alle Maven-modules)
+        run: |
+          # aggregate BOM van alle modules, lokaal via de maven plugin
+          mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom \
+            -DschemaVersion=1.6 \
+            -DoutputFormat=json \
+            -DoutputName=sbom.cdx
+          echo "SBOM geschreven naar target/sbom.cdx.json"
+
+      - name: Scan SBOM met Trivy (SARIF, faalt niet)
+        # Genereert ALTIJD een SARIF-rapport. exit-code 0 zorgt dat deze stap nooit faalt,
+        # zodat de SARIF-upload hieronder altijd plaatsvindt. De daadwerkelijke poort
+        # (falen op HIGH/CRITICAL) zit in de aparte gate-stap verderop.
+        # limit-severities-for-sarif beperkt de SARIF tot het severity-filter; zonder deze
+        # optie neemt Trivy standaard ALLE severities in de SARIF op.
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: sbom
+          scan-ref: target/sbom.cdx.json
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          ignore-unfixed: false
+          exit-code: '0'
+
+      - name: Upload Trivy SARIF naar code scanning
+        # if: always() => upload gebeurt ook als een voorgaande stap faalt.
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-sca
+
+      - name: Upload SBOM als bewijslast (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-json-sca
+          path: target/sbom.cdx.json
+          if-no-files-found: error
+
+      - name: Trivy kwetsbaarheidspoort (faalt op HIGH/CRITICAL)
+        # Aparte gate-stap: deze laat de build FALEN zodra er HIGH/CRITICAL kwetsbaarheden zijn.
+        # Draait na de SARIF-upload, dus de Security-tab is sowieso al bijgewerkt.
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: sbom
+          scan-ref: target/sbom.cdx.json
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: '1'

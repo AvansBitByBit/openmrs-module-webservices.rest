@@ -1,0 +1,56 @@
+# Dependabot configuratie (versie 2) voor proactieve VERSION-updates.
+#
+# Let op: security-updates EN Dependabot alerts staan al apart aan via de
+# repo-instellingen. Dit bestand voegt ALLEEN proactieve versie-updates toe.
+#
+# Compliance: ondersteunt patchmanagement conform NEN 7510 (informatie-
+# beveiliging in de zorg, gebaseerd op NEN-EN-ISO 27002): tijdig en
+# gecontroleerd bijwerken van afhankelijkheden.
+#
+# PR's gaan standaard naar de default branch (master); target-branch wordt
+# bewust NIET overschreven.
+version: 2
+
+updates:
+  # Maven-afhankelijkheden van de OpenMRS-module (Maven multi-module, JDK 8).
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    # Groepeer alle minor/patch-updates in EEN PR om PR-ruis te beperken.
+    # Major-updates blijven bewust losse PR's (potentieel breaking).
+    groups:
+      maven-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions die in de workflows worden gebruikt.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Groepeer alle Action-updates samen; dit zijn doorgaans kleine,
+    # veilige version-bumps van de gebruikte actions.
+    groups:
+      github-actions-all:
+        applies-to: version-updates
+        patterns:
+          - "*"
