@@ -15,15 +15,27 @@
 		factory-method="getInstance" >
 	</bean>
 
+	<!-- Public extension points: other modules may inject or replace these registry beans. -->
+	<bean id="resourceRegistry"
+		class="org.openmrs.module.webservices.rest.web.api.impl.DefaultResourceRegistry">
+		<constructor-arg ref="openmrsClassScanner" />
+		<constructor-arg ref="restHelperService" />
+	</bean>
+
+	<bean id="searchHandlerRegistry"
+		class="org.openmrs.module.webservices.rest.web.api.impl.DefaultSearchHandlerRegistry">
+		<constructor-arg ref="restHelperService" />
+	</bean>
+
 	<bean id="restService"
 		class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
 		<property name="transactionManager" ref="transactionManager" />
 		<property name="target">
 			<bean
 				class="org.openmrs.module.webservices.rest.web.api.impl.RestServiceImpl">
-				<property name="restHelperService" ref="restHelperService" />
-				<property name="openmrsClassScanner" ref="openmrsClassScanner" />
-				<property name="executorService" ref="webservicesRestExecutor" />
+				<constructor-arg ref="resourceRegistry" />
+				<constructor-arg ref="searchHandlerRegistry" />
+				<constructor-arg ref="webservicesRestExecutor" />
 			</bean>
 		</property>
 		<property name="preInterceptors" ref="serviceInterceptors" />

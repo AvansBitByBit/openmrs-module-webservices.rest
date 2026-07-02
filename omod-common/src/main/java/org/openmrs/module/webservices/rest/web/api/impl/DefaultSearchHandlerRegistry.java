@@ -22,6 +22,7 @@ import org.openmrs.api.APIException;
 import org.openmrs.module.ModuleUtil;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.api.RestHelperService;
+import org.openmrs.module.webservices.rest.web.api.SearchHandlerRegistry;
 import org.openmrs.module.webservices.rest.web.resource.api.SearchConfig;
 import org.openmrs.module.webservices.rest.web.resource.api.SearchHandler;
 import org.openmrs.module.webservices.rest.web.resource.api.SearchParameter;
@@ -29,7 +30,10 @@ import org.openmrs.module.webservices.rest.web.resource.api.SearchQuery;
 import org.openmrs.module.webservices.rest.web.response.InvalidSearchException;
 import org.openmrs.util.OpenmrsConstants;
 
-class SearchHandlerRegistry {
+/**
+ * Default configuration-based {@link SearchHandlerRegistry} implementation.
+ */
+public class DefaultSearchHandlerRegistry implements SearchHandlerRegistry {
 
 	private volatile Map<CompositeSearchHandlerKeyValue, Set<SearchHandler>> searchHandlersByParameter;
 
@@ -41,15 +45,12 @@ class SearchHandlerRegistry {
 
 	private final RestHelperService restHelperService;
 
-	SearchHandlerRegistry(RestHelperService restHelperService) {
+	public DefaultSearchHandlerRegistry(RestHelperService restHelperService) {
 		this.restHelperService = restHelperService;
 	}
 
-	void initialize() {
-		if (searchHandlersByIds != null) {
-			return;
-		}
-
+	@Override
+	public void refresh() {
 		Map<CompositeSearchHandlerKeyValue, SearchHandler> tempSearchHandlersByIds = new HashMap<CompositeSearchHandlerKeyValue, SearchHandler>();
 		Map<CompositeSearchHandlerKeyValue, Set<SearchHandler>> tempSearchHandlersByParameters = new HashMap<CompositeSearchHandlerKeyValue, Set<SearchHandler>>();
 		Map<String, Set<SearchHandler>> tempSearchHandlersByResource = new HashMap<String, Set<SearchHandler>>();
@@ -65,8 +66,15 @@ class SearchHandlerRegistry {
 		searchHandlersByResource = tempSearchHandlersByResource;
 	}
 
-	SearchHandler getSearchHandler(String resourceName, Map<String, String[]> parameters) throws APIException {
-		initialize();
+	private void initializeIfNecessary() {
+		if (searchHandlersByIds == null) {
+			refresh();
+		}
+	}
+
+	@Override
+	public SearchHandler getSearchHandler(String resourceName, Map<String, String[]> parameters) throws APIException {
+		initializeIfNecessary();
 
 		Set<SearchParameter> searchParameters = new HashSet<SearchParameter>();
 
@@ -98,12 +106,14 @@ class SearchHandlerRegistry {
 		return selectCandidateSearchHandler(candidateSearchHandlers);
 	}
 
-	List<SearchHandler> getAllSearchHandlers() {
+	@Override
+	public List<SearchHandler> getAllSearchHandlers() {
 		return allSearchHandlers;
 	}
 
-	Set<SearchHandler> getSearchHandlers(String resourceName) {
-		initialize();
+	@Override
+	public Set<SearchHandler> getSearchHandlers(String resourceName) {
+		initializeIfNecessary();
 		return searchHandlersByResource.get(resourceName);
 	}
 

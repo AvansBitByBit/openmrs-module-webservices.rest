@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.webservices.rest.web.api.impl;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -27,7 +28,6 @@ import org.mockingbird.test.rest.resource.DuplicateNameAndOrderAnimalResource_1_
 import org.mockingbird.test.rest.resource.DuplicateNameAnimalResource_1_9;
 import org.mockingbird.test.rest.resource.InstantiateExceptionAnimalResource_1_9;
 import org.mockingbird.test.rest.resource.UnannotatedAnimalResource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.openmrs.api.APIException;
 import org.openmrs.module.webservices.rest.web.OpenmrsClassScanner;
@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.endsWith;
@@ -79,11 +80,19 @@ public class RestServiceImplTest extends BaseContextMockTest {
 	@Mock
 	OpenmrsClassScanner openmrsClassScanner;
 	
-	@InjectMocks
-	RestService restService = new RestServiceImpl();
+	@Mock
+	ExecutorService executorService;
+
+	RestService restService;
 	
 	@Rule
 	public ExpectedException expectedException = ExpectedException.none();
+
+	@Before
+	public void setUpRestService() {
+		restService = new RestServiceImpl(new DefaultResourceRegistry(openmrsClassScanner, restHelperService),
+		        new DefaultSearchHandlerRegistry(restHelperService), executorService);
+	}
 	
 	/**
 	 * @verifies return default representation if given null

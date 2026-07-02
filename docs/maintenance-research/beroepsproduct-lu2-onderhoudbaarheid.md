@@ -8,6 +8,6 @@ Dit bestand verwijst naar de uitgewerkte oplevering:
 - Evidence: `docs/maintenance-research/evidence/`
 - Diagrammen: `docs/diagrams/hotspot-before.puml`, `hotspot-after.puml`, `hotspot-sequence.puml`
 
-De hoofd-PoC is de architectuurrefactor van `RestServiceImpl` naar een facade met `ResourceRegistry` en `SearchHandlerRegistry`. De eerdere `ConversionUtil`-refactor is alleen nog appendix/micro-PoC.
+De hoofd-PoC is de architectuurrefactor van `RestServiceImpl` naar een facade met injecteerbare `ResourceRegistry`- en `SearchHandlerRegistry`-interfaces en twee standaardimplementaties. De eerdere `ConversionUtil`-refactor is alleen nog appendix/micro-PoC.
 
 Kort oordeel: onderhoudbaarheid is aantoonbaar verbeterd voor de gekozen architectuurhotspot. De validatieclaim blijft eerlijk beperkt: focused tests, `omod-common` en `clean verify` zijn groen, maar live integration is niet bewezen en `clean test` had een rode run buiten de PoC.

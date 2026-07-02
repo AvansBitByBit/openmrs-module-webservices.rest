@@ -24,8 +24,9 @@ De gekozen PoC is V1. Reden: `RestServiceImpl` is architectonisch centraler dan 
 Wel:
 
 - `RestServiceImpl` kleiner maken als facade/coordinator;
-- `ResourceRegistry` en `SearchHandlerRegistry` package-private toevoegen;
-- public API en exceptionteksten gelijk houden.
+- publieke, smalle `ResourceRegistry`- en `SearchHandlerRegistry`-interfaces toevoegen;
+- standaardimplementaties via constructor-injectie koppelen;
+- het bestaande `RestService`-contract en de exceptionteksten gelijk houden.
 
 Niet:
 

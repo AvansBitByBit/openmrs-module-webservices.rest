@@ -3,27 +3,30 @@ title Search handler lookup after refactor
 
 actor Client
 participant RestServiceImpl
-participant SearchHandlerRegistry
+participant "SearchHandlerRegistry\n(interface)" as SearchHandlerRegistry
+participant DefaultSearchHandlerRegistry
 participant RestHelperService
 
 Client -> RestServiceImpl : getSearchHandler(resourceName, parameters)
 RestServiceImpl -> SearchHandlerRegistry : getSearchHandler(resourceName, parameters)
+SearchHandlerRegistry -> DefaultSearchHandlerRegistry : injected implementation
 
 alt registry not initialized
-  SearchHandlerRegistry -> RestHelperService : getRegisteredSearchHandlers()
-  RestHelperService --> SearchHandlerRegistry : handlers
-  SearchHandlerRegistry -> SearchHandlerRegistry : index by id, parameter and resource
+  DefaultSearchHandlerRegistry -> RestHelperService : getRegisteredSearchHandlers()
+  RestHelperService --> DefaultSearchHandlerRegistry : handlers
+  DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : index by id, parameter and resource
 end
 
-SearchHandlerRegistry -> SearchHandlerRegistry : extract non-special parameters
+DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : extract non-special parameters
 alt s=id provided
-  SearchHandlerRegistry -> SearchHandlerRegistry : lookup by resource + id
+  DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : lookup by resource + id
 else parameter based search
-  SearchHandlerRegistry -> SearchHandlerRegistry : match candidates by parameters
-  SearchHandlerRegistry -> SearchHandlerRegistry : remove handlers with missing required params
-  SearchHandlerRegistry -> SearchHandlerRegistry : return single/default or throw ambiguous
+  DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : match candidates by parameters
+  DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : remove handlers with missing required params
+  DefaultSearchHandlerRegistry -> DefaultSearchHandlerRegistry : return single/default or throw ambiguous
 end
 
+DefaultSearchHandlerRegistry --> SearchHandlerRegistry : SearchHandler or exception/null
 SearchHandlerRegistry --> RestServiceImpl : SearchHandler or exception/null
 RestServiceImpl --> Client : SearchHandler or exception/null
 @enduml

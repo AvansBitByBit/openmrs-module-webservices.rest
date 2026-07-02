@@ -4,7 +4,9 @@ Voor LU2 is de onderhoudbaarheid van `openmrs-module-webservices.rest` onderzoch
 
 De hoofd-PoC is verplaatst van de eerdere kleine `ConversionUtil`-refactor naar een architectuurrefactor van `RestServiceImpl`. Baseline was `RestServiceImpl` 737 LOC, 32 imports en 170 rough decision tokens. De class deed tegelijk resource discovery, search handler selectie en service-coordinatie.
 
-De verbetering splitst dit op in package-private `ResourceRegistry` en `SearchHandlerRegistry`. `RestServiceImpl` blijft de publieke facade en het `RestService` API is niet gewijzigd. Na de PoC is `RestServiceImpl` 197 LOC en heeft nog 19 rough decision tokens. De registries blijven kleiner dan de oude god-class.
+De verbetering splitst dit op in `DefaultResourceRegistry` en `DefaultSearchHandlerRegistry` achter de publieke interfaces `ResourceRegistry` en `SearchHandlerRegistry`. `RestServiceImpl` blijft de facade, ontvangt zijn dependencies verplicht via de constructor en maakt geen concrete registries meer aan. Het functionele `RestService` API is niet gewijzigd. De facade is nu 159 LOC; 19 directe tests en 53 characterization tests zijn groen.
+
+De SOLID-vervolgstap verbetert DIP, registry-level OCP, ISP, testability en reusability, maar verlaagt de totale LOC of complexiteit niet: het gemeten subsysteem groeit van 741 naar 793 fysieke regels en van 85 naar 87 rough control-flow tokens. De twee interfaces voegen samen acht publieke operaties toe en zijn dus een bewuste onderhoudsverplichting.
 
 Validatie: `RestServiceImplTest` draait groen met 53 tests, `omod-common` draait groen met 121 tests, `git diff --check` is groen en `mvn clean verify` is groen. `mvn clean test` was rood op een bestaande/flaky `ClearDbCacheController2_0Test`, daarom claim ik niet algemeen dat er nul regressierisico in de hele repo is.
 

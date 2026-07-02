@@ -1,24 +1,24 @@
 # 05 PoC-verantwoording
 
-## Commit
+## Ontwikkelstappen
 
-`0c796f5 refactor: split rest service registries`
+De oorspronkelijke classesplitsing staat in commit `0c796f5`. De SOLID-vervolgstap vervangt de interne registries door publieke interfaces en injecteerbare standaardimplementaties.
 
-## Gewijzigde bestanden
+Belangrijkste productieonderdelen:
 
-- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/RestServiceImpl.java`
-- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/ResourceRegistry.java`
-- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/SearchHandlerRegistry.java`
+- `web.api.ResourceRegistry` en `web.api.SearchHandlerRegistry`: publieke extension contracts;
+- `DefaultResourceRegistry` en `DefaultSearchHandlerRegistry`: standaardgedrag;
+- `RestServiceImpl`: facade met verplichte constructor-injectie;
+- `webModuleApplicationContext.xml`: beans `resourceRegistry` en `searchHandlerRegistry`.
 
-## Traceerbaarheid ontwerp naar code
+## Traceerbaarheid ontwerp naar bewijs
 
-| Ontwerpkeuze | Code |
+| Ontwerpkeuze | Code/testbewijs |
 |---|---|
-| Facade/coordinator | `RestServiceImpl` delegeert public methods naar registries. |
-| Resource responsibility apart | `ResourceRegistry` bevat scanner, metadata, orderconflict en lookup. |
-| Search responsibility apart | `SearchHandlerRegistry` bevat indexes, parameter matching en ambiguity handling. |
-| Geen public API widening | Beide registries zijn package-private. |
+| Program to interface / DIP | `RestServiceImpl` heeft alleen interfacevelden en een constructor met interfaceparameters. |
+| Open/Closed | `RestServiceImplDependencyTest` injecteert alternatieve implementaties zonder de facade te wijzigen. |
+| Directe testability | `DefaultResourceRegistryTest` en `DefaultSearchHandlerRegistryTest` testen de classes afzonderlijk. |
+| Reusability | Interfaces en default implementations zijn public; Spring publiceert beide beans. |
+| Gedragsbehoud | De bestaande 53 `RestServiceImplTest` characterization tests blijven groen. |
 
-## AI/tooling
-
-Codex is gebruikt voor implementatie, maar de output is gecontroleerd met tests, metrics, `git diff --check` en handmatige inspectie. Een belangrijk leerpunt is dat de eerste ConversionUtil-PoC te klein was voor de hoofdvraag. Deze tweede PoC is daarom bewust architectuurgerichter.
+De API-uitbreiding is een bewuste trade-off: acht interface-operaties worden publiek onderhoudscontract. Dat verbetert hergebruik en vervangbaarheid, maar vergroot het te onderhouden publieke oppervlak.
