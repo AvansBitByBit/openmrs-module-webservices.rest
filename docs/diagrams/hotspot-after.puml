@@ -1,58 +1,65 @@
 @startuml
-title Hotspot after - RestServiceImpl as facade
+title Hotspot after - interface-driven registry facade
+
+package "org.openmrs.module.webservices.rest.web.api" {
+  interface RestService
+
+  interface ResourceRegistry {
+    +refresh()
+    +getResourceByName(name)
+    +getResourceBySupportedClass(type)
+    +getResourceHandlers()
+  }
+
+  interface SearchHandlerRegistry {
+    +refresh()
+    +getSearchHandler(resource, parameters)
+    +getSearchHandlers(resource)
+    +getAllSearchHandlers()
+  }
+}
 
 package "org.openmrs.module.webservices.rest.web.api.impl" {
   class RestServiceImpl {
+    +RestServiceImpl(ResourceRegistry, SearchHandlerRegistry, ExecutorService)
     +getResourceByName(name)
     +getResourceBySupportedClass(type)
     +getResourceHandlers()
     +getSearchHandler(resource, parameters)
     +getSearchHandlers(resource)
     +initialize()
-    -getResourceRegistry()
-    -getSearchHandlerRegistry()
   }
 
-  class ResourceRegistry <<package-private>> {
-    ~initialize()
-    ~getResourceByName(name)
-    ~getResourceBySupportedClass(type)
-    ~getResourceHandlers()
-  }
-
-  class SearchHandlerRegistry <<package-private>> {
-    ~initialize()
-    ~getSearchHandler(resource, parameters)
-    ~getSearchHandlers(resource)
-    ~getAllSearchHandlers()
-  }
+  class DefaultResourceRegistry
+  class DefaultSearchHandlerRegistry
 }
 
-interface RestService
 class OpenmrsClassScanner
-class RestHelperService
+interface RestHelperService
+interface ExecutorService
 
 RestServiceImpl ..|> RestService
-RestServiceImpl *-- ResourceRegistry : lazy owns
-RestServiceImpl *-- SearchHandlerRegistry : lazy owns
-ResourceRegistry --> OpenmrsClassScanner
-ResourceRegistry --> RestHelperService
-SearchHandlerRegistry --> RestHelperService
+RestServiceImpl --> ResourceRegistry : constructor injection
+RestServiceImpl --> SearchHandlerRegistry : constructor injection
+RestServiceImpl --> ExecutorService : constructor injection
+DefaultResourceRegistry ..|> ResourceRegistry
+DefaultSearchHandlerRegistry ..|> SearchHandlerRegistry
+DefaultResourceRegistry --> OpenmrsClassScanner
+DefaultResourceRegistry --> RestHelperService
+DefaultSearchHandlerRegistry --> RestHelperService
 
 note right of RestServiceImpl
-  Public API unchanged.
-  The facade now coordinates.
+  RestService contract unchanged.
+  No concrete registry construction.
 end note
 
 note bottom of ResourceRegistry
-  Resource discovery:
-  annotations, version filtering,
-  order conflicts, class/name lookup.
+  Public Spring bean: resourceRegistry
+  Replaceable extension contract.
 end note
 
 note bottom of SearchHandlerRegistry
-  Search lookup:
-  id index, parameter matching,
-  required parameters, default/ambiguous selection.
+  Public Spring bean: searchHandlerRegistry
+  Replaceable extension contract.
 end note
 @enduml

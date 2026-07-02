@@ -16,10 +16,10 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.api.APIException;
-import org.openmrs.module.webservices.rest.web.OpenmrsClassScanner;
 import org.openmrs.module.webservices.rest.web.RestConstants;
-import org.openmrs.module.webservices.rest.web.api.RestHelperService;
+import org.openmrs.module.webservices.rest.web.api.ResourceRegistry;
 import org.openmrs.module.webservices.rest.web.api.RestService;
+import org.openmrs.module.webservices.rest.web.api.SearchHandlerRegistry;
 import org.openmrs.module.webservices.rest.web.representation.CustomRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.NamedRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
@@ -32,43 +32,26 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceH
  */
 public class RestServiceImpl implements RestService {
 
-	private RestHelperService restHelperService;
+	private final ResourceRegistry resourceRegistry;
 
-	private OpenmrsClassScanner openmrsClassScanner;
+	private final SearchHandlerRegistry searchHandlerRegistry;
 
-	private ExecutorService executorService;
+	private final ExecutorService executorService;
 
-	private volatile ResourceRegistry resourceRegistry;
-
-	private volatile SearchHandlerRegistry searchHandlerRegistry;
-
-	public RestServiceImpl() {
-	}
-
-	public RestHelperService getRestHelperService() {
-		return restHelperService;
-	}
-
-	public void setRestHelperService(RestHelperService restHelperService) {
-		this.restHelperService = restHelperService;
-		resourceRegistry = null;
-		searchHandlerRegistry = null;
-	}
-
-	public OpenmrsClassScanner getOpenmrsClassScanner() {
-		return openmrsClassScanner;
-	}
-
-	public void setOpenmrsClassScanner(OpenmrsClassScanner openmrsClassScanner) {
-		this.openmrsClassScanner = openmrsClassScanner;
-		resourceRegistry = null;
-	}
-
-	public ExecutorService getExecutorService() {
-		return executorService;
-	}
-
-	public void setExecutorService(ExecutorService executorService) {
+	/**
+	 * Creates the REST facade with replaceable registry implementations.
+	 *
+	 * @param resourceRegistry resource discovery and lookup abstraction
+	 * @param searchHandlerRegistry search-handler indexing and selection abstraction
+	 * @param executorService executor used for asynchronous refresh
+	 */
+	public RestServiceImpl(ResourceRegistry resourceRegistry, SearchHandlerRegistry searchHandlerRegistry,
+	    ExecutorService executorService) {
+		if (resourceRegistry == null || searchHandlerRegistry == null || executorService == null) {
+			throw new IllegalArgumentException("Registry and executor dependencies are required");
+		}
+		this.resourceRegistry = resourceRegistry;
+		this.searchHandlerRegistry = searchHandlerRegistry;
 		this.executorService = executorService;
 	}
 
@@ -110,7 +93,7 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public Resource getResourceByName(String name) throws APIException {
-		return getResourceRegistry().getResourceByName(name);
+		return resourceRegistry.getResourceByName(name);
 	}
 
 	/**
@@ -118,7 +101,7 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public Resource getResourceBySupportedClass(Class<?> resourceClass) throws APIException {
-		return getResourceRegistry().getResourceBySupportedClass(resourceClass);
+		return resourceRegistry.getResourceBySupportedClass(resourceClass);
 	}
 
 	/**
@@ -127,7 +110,7 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public SearchHandler getSearchHandler(String resourceName, Map<String, String[]> parameters) throws APIException {
-		return getSearchHandlerRegistry().getSearchHandler(resourceName, parameters);
+		return searchHandlerRegistry.getSearchHandler(resourceName, parameters);
 	}
 
 	/**
@@ -135,14 +118,15 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public List<DelegatingResourceHandler<?>> getResourceHandlers() throws APIException {
-		return getResourceRegistry().getResourceHandlers();
+		return resourceRegistry.getResourceHandlers();
 	}
 
 	/**
 	 * @see org.openmrs.module.webservices.rest.web.api.RestService#getAllSearchHandlers()
 	 */
+	@Override
 	public List<SearchHandler> getAllSearchHandlers() {
-		return searchHandlerRegistry == null ? null : searchHandlerRegistry.getAllSearchHandlers();
+		return searchHandlerRegistry.getAllSearchHandlers();
 	}
 
 	/**
@@ -150,7 +134,7 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public Set<SearchHandler> getSearchHandlers(String resourceName) {
-		return getSearchHandlerRegistry().getSearchHandlers(resourceName);
+		return searchHandlerRegistry.getSearchHandlers(resourceName);
 	}
 
 	/**
@@ -158,40 +142,18 @@ public class RestServiceImpl implements RestService {
 	 */
 	@Override
 	public void initialize() {
-		resourceRegistry = null;
-		searchHandlerRegistry = null;
-
-		getResourceRegistry().initialize();
-		getSearchHandlerRegistry().initialize();
+		resourceRegistry.refresh();
+		searchHandlerRegistry.refresh();
 	}
 
 	@Override
 	public void initializeAsync() {
-		final RestServiceImpl restService = this;
 		executorService.submit(new Runnable() {
 
 			@Override
 			public void run() {
-				restService.initialize();
+				RestServiceImpl.this.initialize();
 			}
 		});
-	}
-
-	private ResourceRegistry getResourceRegistry() {
-		ResourceRegistry registry = resourceRegistry;
-		if (registry == null) {
-			registry = new ResourceRegistry(openmrsClassScanner, restHelperService);
-			resourceRegistry = registry;
-		}
-		return registry;
-	}
-
-	private SearchHandlerRegistry getSearchHandlerRegistry() {
-		SearchHandlerRegistry registry = searchHandlerRegistry;
-		if (registry == null) {
-			registry = new SearchHandlerRegistry(restHelperService);
-			searchHandlerRegistry = registry;
-		}
-		return registry;
 	}
 }

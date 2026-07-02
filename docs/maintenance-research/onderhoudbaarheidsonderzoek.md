@@ -28,7 +28,7 @@ De gebruikte design smells zijn vooral:
 - **Opacity**: moeilijk te zien welke verantwoordelijkheid waar zit.
 - **Rigidity**: wijziging in resource discovery raakt ook search handler code omdat het in dezelfde class zit.
 
-Voor het ontwerp gebruik ik vooral SRP en Facade/Coordinator. `RestServiceImpl` blijft het publieke gezicht van `RestService`, maar de interne registratielogica wordt opgesplitst in twee cohesive package-private classes. Geen nieuw publiek API-contract dus, en geen pattern-forcing.
+Voor het ontwerp gebruik ik SRP en Facade/Coordinator, gevolgd door Program to Interface en Dependency Inversion. `RestServiceImpl` blijft het publieke gezicht van `RestService`; resource- en searchlogica zitten in afzonderlijke standaardimplementaties achter twee smalle publieke interfaces. De interfaces zijn bewuste extension contracts en worden via constructor-injectie gekoppeld.
 
 ## 3. Onderzoeksaanpak
 
@@ -168,18 +168,18 @@ Na de PoC:
 
 ```text
 RestServiceImpl
-  - beheert dependencies en lazy initialization
+  - ontvangt dependencies verplicht via de constructor
   - public RestService API blijft hetzelfde
-  - delegeert naar ResourceRegistry en SearchHandlerRegistry
+  - delegeert naar de interfaces ResourceRegistry en SearchHandlerRegistry
 
-ResourceRegistry
+DefaultResourceRegistry implements ResourceRegistry
   - resource classes scannen
   - annotations interpreteren
   - OpenMRS version filtering
   - duplicate order conflict
   - name/class/resource handler lookup
 
-SearchHandlerRegistry
+DefaultSearchHandlerRegistry implements SearchHandlerRegistry
   - search handlers indexeren
   - id lookup
   - parameter matching
@@ -192,14 +192,16 @@ Toegepaste principes:
 - **SRP**: resource registry en search registry hebben gescheiden redenen om te wijzigen.
 - **Facade**: `RestServiceImpl` blijft het bestaande servicegezicht.
 - **Encapsulate what varies**: resource discovery en search selection zijn aparte variatiepunten.
-- **No public API widening**: nieuwe classes zijn package-private in `org.openmrs.module.webservices.rest.web.api.impl`.
+- **DIP / Program to Interface**: de facade kent alleen `ResourceRegistry` en `SearchHandlerRegistry`.
+- **OCP op registry-niveau**: Spring of een caller kan een andere implementatie injecteren zonder de facade te wijzigen.
+- **ISP**: beide interfaces hebben ieder vier samenhangende operaties.
 
 Alternatief dat niet gekozen is:
 
 | Alternatief | Voordeel | Nadeel |
 |---|---|---|
 | Alleen Extract Method binnen `RestServiceImpl` | Lage effort | Class blijft god-class; modularity verbetert nauwelijks. |
-| Nieuwe public registry interfaces | Testbaar en uitbreidbaar | Wijdt API onnodig uit voor een interne refactor. |
+| Publieke registry interfaces | Testbaar, vervangbaar en herbruikbaar | Gekozen in de SOLID-vervolgstap; vergroot bewust het te onderhouden API-oppervlak. |
 | Grote rewrite naar Strategy/Factory | Theoretisch netjes | Te veel regressierisico en pattern-forcing. |
 
 Diagrammen:
@@ -215,17 +217,20 @@ Commit: `0c796f5 refactor: split rest service registries`
 Gewijzigde code:
 
 - `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/RestServiceImpl.java`
-- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/ResourceRegistry.java`
-- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/SearchHandlerRegistry.java`
+- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/ResourceRegistry.java`
+- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/SearchHandlerRegistry.java`
+- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/DefaultResourceRegistry.java`
+- `omod-common/src/main/java/org/openmrs/module/webservices/rest/web/api/impl/DefaultSearchHandlerRegistry.java`
 
 Belangrijkste codepunten:
 
-- `RestServiceImpl` delegeert public API calls naar registries rond regels 112-153.
-- `RestServiceImpl.initialize()` reset beide registries en initialiseert ze opnieuw rond regels 160-165.
-- `ResourceRegistry` doet resource discovery en lookup vanaf regel 46.
-- `SearchHandlerRegistry` doet search indexing en selectie vanaf regel 48.
+- `RestServiceImpl` ontvangt beide registry-interfaces en `ExecutorService` via de constructor.
+- `RestServiceImpl.initialize()` roept `refresh()` op beide geinjecteerde registries aan.
+- `DefaultResourceRegistry` doet resource discovery en lookup.
+- `DefaultSearchHandlerRegistry` doet search indexing en selectie.
+- Spring publiceert de beans `resourceRegistry` en `searchHandlerRegistry`.
 
-Er zijn geen nieuwe public classes toegevoegd. Beide registries zijn package-private. Het publieke `RestService` contract is niet aangepast.
+Het functionele `RestService`-contract is niet aangepast. Wel zijn twee publieke extension interfaces en twee publieke standaardimplementaties toegevoegd. De no-arg constructor en oude dependency-setters van `RestServiceImpl` zijn verwijderd; directe implementatiecallers moeten constructor-injectie gebruiken.
 
 ## 10. Validatie
 
@@ -240,6 +245,17 @@ Before/after metrics:
 | Nieuwe `SearchHandlerRegistry` LOC | n.v.t. | 300 | +300 | Cohesive search responsibility, kleiner dan oude god-class. |
 | Package cycles | 11 directe cycles baseline | geen nieuwe cycle | 0 nieuw | Registries blijven in bestaande impl package. |
 
+SOLID-vervolgmeting ten opzichte van de eerste splitsing:
+
+| Metric | Eerste splitsing | SOLID-vervolg | Eerlijke interpretatie |
+|---|---:|---:|---|
+| LOC `RestServiceImpl` | 197 | 159 | Concrete constructie en setters zijn uit de facade verwijderd. |
+| Publieke registry-interface-operaties | 0 | 8 | Bewuste uitbreiding voor DIP/OCP/reuse. |
+| Totale fysieke LOC gemeten subsysteem | 741 | 793 | +52; geen totale LOC-reductie in deze fase. |
+| Totale nonblank LOC | 618 | 667 | +49 door expliciete contracts en wiring. |
+| Unieke imports subsysteem | 32 | 34 | Totale dependencyset is licht gegroeid. |
+| Rough control-flow tokens met versioned script | 85 | 87 | Geen aantoonbare complexiteitswinst in deze fase. |
+
 Testvalidatie:
 
 | Command | Resultaat |
@@ -249,6 +265,15 @@ Testvalidatie:
 | `mvn --batch-mode --no-transfer-progress clean test` | rood, 1 failure in `ClearDbCacheController2_0Test` |
 | `mvn --batch-mode --no-transfer-progress clean verify` | groen |
 | `git diff --check` | groen |
+
+Aanvullende SOLID-validatie:
+
+| Scope | Resultaat |
+|---|---|
+| Directe tests voor beide registries en dependency-injectie | 19 groen |
+| Bestaande characterization suite | 53 groen |
+| Huidige `omod-common` suite | 149 groen |
+| Huidige volledige `clean verify` | groen; 149 common + 1803 omod tests, 0 failures/errors |
 
 Regressieclaim:
 
@@ -284,7 +309,7 @@ Daarom is de tweede aanpak gefaseerd uitgevoerd: eerst testclasses zoeken, daarn
 
 De repo is redelijk onderhoudbaar qua Maven-modules en bestaande testbasis, maar centrale frameworkclasses zijn duidelijke onderhoudbaarheidsrisico's. Vooral `RestServiceImpl`, `RestUtil`, `BaseDelegatingResource` en Swagger-generatie drukken op analyzability en modifiability.
 
-De hoofd-PoC verbetert de onderhoudbaarheid van `RestServiceImpl` aantoonbaar: de public facade gaat van 737 naar 197 LOC en van 170 naar 19 rough decision tokens. Resource discovery en search handler selection zijn nu aparte package-private registries met duidelijke verantwoordelijkheden. Dit verbetert vooral modularity, analyzability en modifiability.
+De hoofd-PoC en SOLID-vervolgstap verbeteren de onderhoudbaarheid van `RestServiceImpl` aantoonbaar: de facade gaat van 737 naar 159 LOC, resource discovery en search handler selection hebben afzonderlijke implementaties, en de facade programmeert uitsluitend tegen twee publieke interfaces. Dit verbetert SRP, modularity, DIP, registry-level OCP, directe testability en reusability. De SOLID-stap vergroot wel de totale LOC en publieke API; dat is geen volumewinst.
 
 De validatie is eerlijk afgebakend: focused tests en `omod-common` zijn groen, `clean verify` is groen, maar `clean test` was in een run rood door een bestaande/flaky cache-test buiten de PoC. Live integration is geprobeerd maar niet bewezen omdat Docker Desktop niet draaide.
 
