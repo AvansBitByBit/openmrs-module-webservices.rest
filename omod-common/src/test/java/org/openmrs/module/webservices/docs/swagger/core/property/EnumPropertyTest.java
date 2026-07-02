@@ -7,18 +7,25 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.openmrs.module.webservices.rest.web.controller;
+package org.openmrs.module.webservices.docs.swagger.core.property;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import static org.junit.Assert.assertEquals;
 
-@Controller("webservices.rest.SwaggerDocController")
-@RequestMapping("/module/webservices/rest/apiDocs")
-public class SwaggerDocController {
-	
-	@RequestMapping(method = RequestMethod.GET)
-	public void get() {
+import java.util.Arrays;
+
+import org.junit.Test;
+
+public class EnumPropertyTest {
+
+	private enum Example {
+		FIRST,
+		SECOND
 	}
 
+	@Test
+	public void constructor_shouldExposeEnumNamesWithoutRegexParsing() {
+		EnumProperty property = new EnumProperty(Example.class);
+
+		assertEquals(Arrays.asList("FIRST", "SECOND"), property.getEnum());
+	}
 }

@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -31,6 +32,22 @@ public class SecurityAuditLogger {
 	
 	private static final Logger INTERNAL_LOG = LoggerFactory.getLogger(SecurityAuditLogger.class.getName() + ".internal");
 	
+	private static final int MAX_AUDIT_VALUE_LENGTH = 4096;
+
+	private static final Pattern AUTHORIZATION_VALUE = Pattern.compile(
+	        "(?i)\\b(authorization|cookie)\\b\\s*+[:=]?\\s*+(?:(bearer|basic)\\s++)?[^,;|\\s]++");
+
+	private static final Pattern AUTHENTICATION_SCHEME = Pattern.compile(
+	        "(?i)\\b(bearer|basic)\\s++[A-Za-z0-9._~+/=-]++");
+
+	private static final Pattern SENSITIVE_VALUE = Pattern.compile(
+	        "(?i)\\b(password|wachtwoord|passphrase|sessionToken|session_token|token|bsn)\\b\\s*+[:=]?\\s*+[^,;|\\s]++");
+
+	private static final Pattern MEDICAL_VALUE = Pattern.compile(
+	        "(?i)\\b(diagnose|diagnosis|diagnoses|medicatie|medication|medicijn|medicijnen)\\b\\s*+[:=]?\\s*+[^,;|]++");
+
+	private static final Pattern NINE_DIGIT_IDENTIFIER = Pattern.compile("\\b\\d{9}\\b");
+
 	private static final SecurityAuditLogger INSTANCE = new SecurityAuditLogger(new FileAuditLogWriter());
 	
 	private final AuditLogWriter writer;
@@ -167,18 +184,15 @@ public class SecurityAuditLogger {
 	}
 	
 	private static String sanitize(String value) {
-		String sanitized = value.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
-		sanitized = sanitized.replaceAll("(?i)\\b(authorization|cookie)\\b\\s*[:=]?\\s*(bearer|basic)?\\s*[^,;|\\s]+",
-		    "$1=[REDACTED]");
-		sanitized = sanitized.replaceAll("(?i)\\b(bearer|basic)\\s+[A-Za-z0-9._~+/=-]+", "$1 [REDACTED]");
-		sanitized = sanitized
-		        .replaceAll(
-		            "(?i)\\b(password|wachtwoord|passphrase|sessionToken|session_token|token|bsn)\\b\\s*[:=]?\\s*[^,;|\\s]+",
-		            "$1=[REDACTED]");
-		sanitized = sanitized.replaceAll(
-		    "(?i)\\b(diagnose|diagnosis|diagnoses|medicatie|medication|medicijn|medicijnen)\\b\\s*[:=]?\\s*[^,;|]+",
-		    "$1=[REDACTED]");
-		sanitized = sanitized.replaceAll("\\b\\d{9}\\b", "[REDACTED]");
+		String bounded = value.length() > MAX_AUDIT_VALUE_LENGTH ? value.substring(0, MAX_AUDIT_VALUE_LENGTH)
+		        + " [TRUNCATED]"
+		        : value;
+		String sanitized = bounded.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
+		sanitized = AUTHORIZATION_VALUE.matcher(sanitized).replaceAll("$1=[REDACTED]");
+		sanitized = AUTHENTICATION_SCHEME.matcher(sanitized).replaceAll("$1 [REDACTED]");
+		sanitized = SENSITIVE_VALUE.matcher(sanitized).replaceAll("$1=[REDACTED]");
+		sanitized = MEDICAL_VALUE.matcher(sanitized).replaceAll("$1=[REDACTED]");
+		sanitized = NINE_DIGIT_IDENTIFIER.matcher(sanitized).replaceAll("[REDACTED]");
 		sanitized = sanitized.replace("\\", "\\\\").replace("\"", "'");
 		return sanitized;
 	}

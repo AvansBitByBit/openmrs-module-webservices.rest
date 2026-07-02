@@ -15,9 +15,6 @@ import org.openmrs.util.MemoryAppender;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * ServerLogActionWrapper used to serve the Server logs
@@ -66,28 +63,27 @@ public abstract class ServerLogActionWrapper {
 	 */
 	public String[] logLinePatternMatcher(String logLine) {
 		String[] logElements = new String[4];
-		// Defined Pattern to analyze
-		String regExPatternType = "(INFO|ERROR|WARN|DEBUG)\\s.*?[-].*?\\s((?:[A-z][A-z].+))\\s[|](.*?)[|]\\s((.*\\n*)+)";
-		try {
-			Pattern pattern = Pattern.compile(regExPatternType);
-			Matcher matcher = pattern.matcher(logLine);
-			if (matcher.find()) {
-				// If pattern matches to the message
-				logElements[0] = matcher.group(1);
-				logElements[1] = matcher.group(2);
-				logElements[2] = matcher.group(3);
-				logElements[3] = matcher.group(4);
-			}
+		if (logLine == null) {
 			return logElements;
 		}
-		catch (PatternSyntaxException e) {
-			// In case of Exception, It will return array with error information
-			logElements[0] = "ERROR";
-			logElements[1] = "";
-			logElements[2] = "PatternSyntaxException";
-			logElements[3] = e.getMessage();
+
+		int sourceSeparator = logLine.indexOf(" - ");
+		int timestampStart = sourceSeparator < 0 ? -1 : logLine.indexOf('|', sourceSeparator + 3);
+		int messageStart = timestampStart < 0 ? -1 : logLine.indexOf('|', timestampStart + 1);
+		if (sourceSeparator < 0 || timestampStart < 0 || messageStart < 0) {
 			return logElements;
 		}
+
+		String level = logLine.substring(0, sourceSeparator).trim();
+		if (!"INFO".equals(level) && !"ERROR".equals(level) && !"WARN".equals(level) && !"DEBUG".equals(level)) {
+			return logElements;
+		}
+
+		logElements[0] = level;
+		logElements[1] = logLine.substring(sourceSeparator + 3, timestampStart).trim();
+		logElements[2] = logLine.substring(timestampStart + 1, messageStart).trim();
+		logElements[3] = logLine.substring(messageStart + 1).trim();
+		return logElements;
 	}
 
 	public abstract MemoryAppender getMemoryAppender();

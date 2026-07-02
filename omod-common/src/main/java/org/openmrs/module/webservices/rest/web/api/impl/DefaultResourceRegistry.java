@@ -22,13 +22,17 @@ import org.openmrs.module.ModuleUtil;
 import org.openmrs.module.webservices.rest.web.OpenmrsClassScanner;
 import org.openmrs.module.webservices.rest.web.annotation.SubResource;
 import org.openmrs.module.webservices.rest.web.api.RestHelperService;
+import org.openmrs.module.webservices.rest.web.api.ResourceRegistry;
 import org.openmrs.module.webservices.rest.web.resource.api.Resource;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceHandler;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingSubclassHandler;
 import org.openmrs.module.webservices.rest.web.response.UnknownResourceException;
 import org.openmrs.util.OpenmrsConstants;
 
-class ResourceRegistry {
+/**
+ * Default annotation- and classpath-based {@link ResourceRegistry} implementation.
+ */
+public class DefaultResourceRegistry implements ResourceRegistry {
 
 	private volatile Map<String, ResourceDefinition> resourceDefinitionsByNames;
 
@@ -38,16 +42,13 @@ class ResourceRegistry {
 
 	private final RestHelperService restHelperService;
 
-	ResourceRegistry(OpenmrsClassScanner openmrsClassScanner, RestHelperService restHelperService) {
+	public DefaultResourceRegistry(OpenmrsClassScanner openmrsClassScanner, RestHelperService restHelperService) {
 		this.openmrsClassScanner = openmrsClassScanner;
 		this.restHelperService = restHelperService;
 	}
 
-	void initialize() {
-		if (resourceDefinitionsByNames != null) {
-			return;
-		}
-
+	@Override
+	public void refresh() {
 		Map<String, ResourceDefinition> tempResourceDefinitionsByNames = new HashMap<String, ResourceDefinition>();
 		Map<Class<?>, Resource> tempResourcesBySupportedClasses = new HashMap<Class<?>, Resource>();
 
@@ -78,8 +79,16 @@ class ResourceRegistry {
 		resourceDefinitionsByNames = tempResourceDefinitionsByNames;
 	}
 
-	Resource getResourceByName(String name) throws APIException {
-		initialize();
+	private void initializeIfNecessary() {
+		if (resourceDefinitionsByNames != null) {
+			return;
+		}
+		refresh();
+	}
+
+	@Override
+	public Resource getResourceByName(String name) throws APIException {
+		initializeIfNecessary();
 
 		ResourceDefinition resourceDefinition = resourceDefinitionsByNames.get(name);
 		if (resourceDefinition == null) {
@@ -89,8 +98,9 @@ class ResourceRegistry {
 		}
 	}
 
-	Resource getResourceBySupportedClass(Class<?> resourceClass) throws APIException {
-		initialize();
+	@Override
+	public Resource getResourceBySupportedClass(Class<?> resourceClass) throws APIException {
+		initializeIfNecessary();
 
 		if (HibernateProxy.class.isAssignableFrom(resourceClass)) {
 			resourceClass = resourceClass.getSuperclass();
@@ -120,8 +130,9 @@ class ResourceRegistry {
 		}
 	}
 
-	List<DelegatingResourceHandler<?>> getResourceHandlers() throws APIException {
-		initialize();
+	@Override
+	public List<DelegatingResourceHandler<?>> getResourceHandlers() throws APIException {
+		initializeIfNecessary();
 
 		List<DelegatingResourceHandler<?>> resourceHandlers = new ArrayList<DelegatingResourceHandler<?>>();
 

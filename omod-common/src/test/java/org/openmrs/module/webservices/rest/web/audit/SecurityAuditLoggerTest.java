@@ -150,6 +150,25 @@ public class SecurityAuditLoggerTest {
 		assertEquals(listAppender.list.get(0).getFormattedMessage(), persistedLines.get(0));
 		assertContainsFiveWs(persistedLines.get(0));
 	}
+
+	@Test(timeout = 2000)
+	public void shouldBoundAndRedactAdversarialAuditInput() throws Exception {
+		AuditLogWriter writer = mock(AuditLogWriter.class);
+		SecurityAuditLogger auditLogger = new SecurityAuditLogger(writer, FIXED_CLOCK);
+		StringBuilder input = new StringBuilder("Authorization=Bearer ");
+		for (int i = 0; i < 100000; i++) {
+			input.append('a');
+		}
+
+		auditLogger.loginFailed("attacker", input.toString(), "password=SuperSecret");
+
+		ArgumentCaptor<String> persistedLine = ArgumentCaptor.forClass(String.class);
+		verify(writer).write(persistedLine.capture());
+		String line = persistedLine.getValue();
+		assertTrue(line.contains("[REDACTED]"));
+		assertFalse(line.contains("SuperSecret"));
+		assertTrue(line.length() < 5000);
+	}
 	
 	private void assertContainsFiveWs(String logLine) {
 		assertTrue(logLine.contains("wie=\""));

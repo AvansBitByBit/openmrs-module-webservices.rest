@@ -136,6 +136,35 @@ public class AuthorizationFilterTest extends BaseModuleWebContextSensitiveTest {
 		
 		org.junit.Assert.assertEquals(HttpServletResponse.SC_UNAUTHORIZED, secondFailureAfterReset.getStatus());
 	}
+
+	@Test
+	public void doFilter_shouldRejectInvalidSessionIdWithoutReadingItsValue() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/openmrs/ws/rest/v1/session");
+		request.setRemoteAddr("127.0.0.1");
+		request.setRequestedSessionId("attacker-controlled-session-id");
+		request.setRequestedSessionIdFromCookie(true);
+		request.setRequestedSessionIdValid(false);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain chain = mock(FilterChain.class);
+
+		filter.doFilter(request, response, chain);
+
+		org.junit.Assert.assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+		verify(chain, never()).doFilter(request, response);
+	}
+
+	@Test
+	public void doFilter_shouldAllowRequestWithoutRequestedSessionId() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/openmrs/ws/rest/v1/session");
+		request.setRemoteAddr("127.0.0.1");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain chain = mock(FilterChain.class);
+
+		filter.doFilter(request, response, chain);
+
+		org.junit.Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatus());
+		verify(chain).doFilter(request, response);
+	}
 	
 	private MockHttpServletRequest request(String username, String password) {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/openmrs/ws/rest/v1/session");

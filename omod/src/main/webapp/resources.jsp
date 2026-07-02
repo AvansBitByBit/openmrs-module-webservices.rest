@@ -22,11 +22,16 @@
 
 		<td >
 			<table class="innerTable <c:if test="${resource.subResource}"> subResourceRepresention</c:if>">
+				<thead>
+					<tr><th scope="col"><spring:message code="webservices.rest.help.representations" text="Representation"/></th></tr>
+				</thead>
+				<tbody>
 				<c:forEach var="representation" items="${resource.representations}">
 					<tr>
 						<td>${representation.name}: ${representation.properties}</td>
 					</tr>
 				</c:forEach>
+				</tbody>
 			</table>
 		</td>
 

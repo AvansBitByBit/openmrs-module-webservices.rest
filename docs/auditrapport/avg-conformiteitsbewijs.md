@@ -20,6 +20,8 @@ Volledige juridische AVG-conformiteit vereist daarnaast organisatorische bewijss
 | Brute-force op REST-authenticatie | In-memory rate limiting blokkeert herhaalde mislukte pogingen met HTTP 429. | `AuthorizationFilterTest#doFilter_shouldLockOutAfterConfiguredFailures` |
 | Foutieve credentials bereiken API-laag | Foutieve Basic Auth stopt direct met HTTP 401 en roept de filter chain niet aan. | `AuthorizationFilterTest#doFilter_shouldStopInvalidBasicAuthWithUnauthorized` |
 | Informatielek via foutresponses | Standaard error responses bevatten geen Java class name of regelnummer meer. | `RestUtilTest#wrapErrorResponse_shouldNotExposeStackTraceCodeIfAvailable` |
+| Onveilige module-defaults | `allowedips` is deny-by-default beschreven en `enableStackTraceDetails` staat standaard op `false`. | `omod/src/main/resources/config.xml` |
+| Serverversie-reconnaissance | Gateway gebruikt `server_tokens off` en backend Tomcat error reports tonen geen serverinfo/rapportdetails. | `docker/gateway/security-hardening.conf`, `docker/backend/Dockerfile` |
 | Auditlogging van medische inzage en exports | Login, patiëntdossierinzage, rol/rechtenwijziging en export worden auditwaardig gelogd. | `docs/auditrapport/nen7510-nen7513-audit-logging.md` |
 | Gevoelige data in auditlogs | Wachtwoorden, tokens, BSN, diagnose en medicatie worden geredigeerd. | `SecurityAuditLoggerTest#shouldNotWriteSensitiveDataToLogOrPersistentWriter` |
 
@@ -62,6 +64,11 @@ Resultaat:
 | `webservices.rest.auth.rateLimit.maxFailures` | `5` | `5` |
 | `webservices.rest.auth.rateLimit.windowSeconds` | `900` | `900` |
 | `webservices.rest.auth.rateLimit.lockoutSeconds` | `900` | `900` |
+| `webservices.rest.enableStackTraceDetails` | `false` | alleen tijdelijk voor debug/test inschakelen |
+
+## Resterende deployment-afhankelijkheid
+
+De gatewayconfiguratie verwijdert het exacte nginx-versienummer met `server_tokens off` en verbergt upstream `Server` headers. Het volledig verwijderen of herschrijven van de HTTP `Server` header kan afhankelijk zijn van de gebruikte gateway-image en beschikbare nginx-modules. Dit blijft daarom een deployment-hardeningpunt voor echte productie.
 
 ## Governance-documenten
 
