@@ -25,7 +25,6 @@ public class EnumProperty extends StringProperty {
 	}
 	
 	private String[] getEnums(Class<? extends Enum<?>> e) {
-		return Arrays.toString(e.getEnumConstants())
-		        .replaceAll("^.|.$", "").split(", ");
+		return Arrays.stream(e.getEnumConstants()).map(Enum::name).toArray(String[]::new);
 	}
 }

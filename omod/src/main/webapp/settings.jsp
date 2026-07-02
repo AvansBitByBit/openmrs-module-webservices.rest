@@ -41,14 +41,14 @@
 	<c:forEach var="prop" items="${globalPropertiesModel.properties}" varStatus="varStatus">
 		<spring:nestedPath path="properties[${varStatus.index}]">
 			<div class="settingRow">
-				<h4 class="settingName"><spring:message code="${prop.property}.label" /></h4>
+				<h4 class="settingName"><label for="setting-${varStatus.index}"><spring:message code="${prop.property}.label" /></label></h4>
 				<span class="settingValue">
 					<spring:bind path="propertyValue">
 						<c:set var="inputSize" value="50" scope="page" />
 						<c:if test="${prop.property == 'webservices.rest.maxResultsDefault' || prop.property == 'webservices.rest.maxResultsAbsolute' }">
                              <c:set var="inputSize" value="3" />
                         </c:if>
-						<input type="text" name="${status.expression}" value="${status.value}" size="${inputSize}">
+						<input id="setting-${varStatus.index}" type="text" name="${status.expression}" value="${status.value}" size="${inputSize}">
 						<form:errors cssClass="error"/>
 					</spring:bind>
 				</span>

@@ -7,21 +7,21 @@
 <h2><spring:message code="webservices.rest.test.title" /></h2>
 
 <table id="target">
-    <tr>
-        <td>Type</td>
-        <td><input id="type" type="text" value="GET" size="12"/> (GET, POST, PUT, or DELETE)</td>
+	<tr>
+		<th scope="row"><label for="type">Type</label></th>
+		<td><input id="type" type="text" value="GET" size="12"/> (GET, POST, PUT, or DELETE)</td>
     </tr>
 
-    <tr>
-        <td>URI</td>
+	<tr>
+		<th scope="row"><label for="url">URI</label></th>
         <td><input id="url" type="text" value="${pageContext.request.contextPath}/ws/rest/v1/patient/495b10c4-56bd-11df-a35e-0027136865c4" size="45"/></td>
     </tr>
-    <tr>
-        <td>Body content</td>
+	<tr>
+		<th scope="row"><label for="json">Body content</label></th>
         <td><input type="text" id="json" value='{"patient":"39234823"}' size="45"/></td>
     </tr>
-    <tr>
-        <td>Representation</td>
+	<tr>
+		<th scope="row"><label for="rep">Representation</label></th>
         <td><input id="rep" type="text" value="" size="12"/> (ref, full, custom:)</td>
     </tr>
 </table>

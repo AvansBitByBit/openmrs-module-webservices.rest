@@ -106,11 +106,20 @@ public class TaskServiceWrapper {
 	 * @throws SchedulerException - It will throw in case of any SchedulerService exceptions
 	 */
 	public void runTask(TaskDefinition taskDefinition) throws SchedulerException {
-		Task task = TaskFactory.getInstance().createInstance(taskDefinition);
-        try {
-            task.execute();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
+		Task task = createTask(taskDefinition);
+		try {
+			task.execute();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new SchedulerException("Task execution was interrupted", e);
+		}
+		catch (ExecutionException e) {
+			throw new SchedulerException("Task execution failed", e);
+		}
+	}
+
+	protected Task createTask(TaskDefinition taskDefinition) throws SchedulerException {
+		return TaskFactory.getInstance().createInstance(taskDefinition);
+	}
 }
