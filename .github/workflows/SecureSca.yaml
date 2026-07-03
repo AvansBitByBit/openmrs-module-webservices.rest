@@ -49,7 +49,9 @@ jobs:
           mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom \
             -DschemaVersion=1.6 \
             -DoutputFormat=json \
-            -DoutputName=sbom.cdx
+            -DoutputName=sbom.cdx \
+            -DincludeProvidedScope=false \
+            -DincludeTestScope=false
           echo "SBOM geschreven naar target/sbom.cdx.json"
 
       - name: Scan SBOM met Trivy (SARIF, faalt niet)

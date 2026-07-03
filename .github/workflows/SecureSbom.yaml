@@ -42,7 +42,9 @@ jobs:
           mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom \
             -DschemaVersion=1.6 \
             -DoutputFormat=json \
-            -DoutputName=sbom.cdx
+            -DoutputName=sbom.cdx \
+            -DincludeProvidedScope=false \
+            -DincludeTestScope=false
           mkdir -p docs
           cp target/sbom.cdx.json docs/sbom.cdx.json
           echo "SBOM geschreven naar docs/sbom.cdx.json"
@@ -97,8 +99,10 @@ jobs:
               ].join('\n')
             })
 
-      - name: Commit SBOM naar docs/sbom.cdx.json
-        if: github.event_name != 'pull_request'
+      - name: Open pull request voor bijgewerkte SBOM
+        if: github.event_name == 'push' && github.ref_name == 'master'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -106,6 +110,13 @@ jobs:
           if git diff --cached --quiet; then
             echo "Geen wijzigingen in de SBOM — niets te committen."
           else
+            branch="automation/sbom-${GITHUB_SHA:0:12}"
+            git switch --create "$branch"
             git commit -m "chore: update CycloneDX SBOM [skip ci]"
-            git push
+            git push --set-upstream origin "$branch"
+            gh pr create \
+              --base master \
+              --head "$branch" \
+              --title "chore: update CycloneDX SBOM" \
+              --body "Automatisch bijgewerkte en gevalideerde CycloneDX 1.6-SBOM."
           fi
