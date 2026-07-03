@@ -9,7 +9,7 @@
 
 De reguliere build, unit- en integratietests, OTAP Compose-validatie, CodeQL en SonarCloud waren succesvol. Twee aanvullende securityworkflows op `master` faalden:
 
-1. de SBOM-workflow probeerde rechtstreeks naar de beschermde `master`-branch te pushen;
+1. de SBOM-workflow probeerde wijzigingen naar GitHub te schrijven terwijl de repository dit niet toestaat;
 2. de SCA-gate scande ook Maven-dependencies met scope `provided` en `test`, waardoor kwetsbaarheden uit het OpenMRS-hostplatform ten onrechte als meegeleverde dependencies van deze module werden geblokkeerd.
 
 De workflowconfiguratie is gecorrigeerd. De module-SBOM bevat nu alleen dependencies die daadwerkelijk met de module worden uitgeleverd. Daarnaast is Jackson aangepast van 2.19.4 naar de beveiligde backportversie 2.18.8. De lokaal gegenereerde SBOM bevat 24 in plaats van 237 componenten en Trivy 0.70.0 vindt daarin geen HIGH- of CRITICAL-kwetsbaarheden.
@@ -21,7 +21,7 @@ De kwetsbaarheden in het OpenMRS-hostplatform zijn hiermee niet technisch opgelo
 | Onderdeel | Waarneming | Beoordeling |
 | --- | --- | --- |
 | CI/CD environments | Build, tests, Compose-validatie en rapporterende Trivy-scan waren succesvol. De `master`-run wacht op de handmatige Prod-environmentgate. | Normaal gedrag; geen technische fout. |
-| Secure SBOM | Run `28624520815` faalde met `GH013`: wijzigingen mogen alleen via een pull request naar `master`. | Workflowfout; opgelost. |
+| Secure SBOM | Run `28624520815` faalde met `GH013` bij een directe push. Run `28673728961` genereerde en valideerde de SBOM wel, maar mocht geen automatische pull request maken. | Workflowfout; opgelost door de workflow read-only te maken. |
 | Secure SCA | Run `28624520858` faalde op HIGH/CRITICAL-kwetsbaarheden. | Deels echte platformrisico's, deels verkeerde scanscope voor de modulegate. |
 | Code scanning | 36 open Trivy-meldingen: 1 critical, 34 high en 1 medium. | Afkomstig uit de oude, te brede SBOM. Een nieuwe gerichte scan moet deze modulemeldingen sluiten. |
 | Dependabot alerts | 5 open meldingen voor Jackson: 2 high en 3 medium. | Directe dependency; opgelost met Jackson 2.18.8. |
@@ -40,9 +40,9 @@ In `SecureSca.yaml` en `SecureSbom.yaml` zijn de CycloneDX-opties toegevoegd:
 
 `provided`-dependencies worden door het OpenMRS-platform geleverd en zitten niet in het moduleartefact. Testdependencies worden evenmin naar productie uitgeleverd. De CI-gate beoordeelt daardoor nu het leverbare moduleartefact in plaats van de volledige ontwikkel- en hostomgeving.
 
-### 2. SBOM-publicatie via pull request
+### 2. SBOM-publicatie als CI-artifact
 
-De SBOM-workflow pusht niet meer rechtstreeks naar `master`. Bij een wijziging op `master` maakt de workflow een unieke `automation/sbom-<commit>`-branch en opent zij een pull request. Dit respecteert de repositoryregel dat alle wijzigingen via pull requests moeten lopen.
+De SBOM-workflow schrijft niet meer naar de repository en gebruikt alleen `contents: read`. Iedere run uploadt de gegenereerde en gevalideerde SBOM als CI-artifact. Het bijgehouden bestand `docs/sbom.cdx.json` wordt alleen via een normale ontwikkel-pull-request aangepast. Dit respecteert branch protection zonder de brede repository-instelling in te schakelen waarmee alle GitHub Actions-workflows pull requests kunnen maken.
 
 ### 3. Jackson-securityfix
 
@@ -70,7 +70,7 @@ De lokale build draaide met Java 17 en compileerde naar Java 8-bytecode. De GitH
 2. Behandel de hostplatformbevindingen afzonderlijk. De oude SBOM toonde onder meer kwetsbaarheden in Spring 5.3.30, Netty 4.1.118, PostgreSQL 42.7.7, protobuf 3.19.4, Struts 1.3.8 en Hibernate 5.6.15. Deze libraries worden door OpenMRS 2.8.6 of de runtime geleverd en vragen een platformupgrade, containerupdate of gedocumenteerde risicoacceptatie.
 3. Houd de bestaande container-Trivy-scan actief. Deze is momenteel rapporterend en niet blokkerend; bepaal per omgeving welke HIGH/CRITICAL-bevindingen een release moeten blokkeren.
 4. Beoordeel de vijf Dependabot-PR's met buildfouten niet automatisch. Het zijn major-upgrades die broncode- of buildmigraties vereisen.
-5. Controleer na de eerste SBOM-run of de repositoryinstelling GitHub Actions toestaat pull requests te maken. De workflow vraagt expliciet `contents: write` en `pull-requests: write`.
+5. Verwijder na controle de verweesde branch `automation/sbom-4a907a902024`; deze is door de mislukte run aangemaakt, maar er bestaat geen pull request voor.
 
 ## Conclusie
 
