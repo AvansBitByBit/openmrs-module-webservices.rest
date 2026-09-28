@@ -39,7 +39,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<openmrs.version>2.8.6</openmrs.version>
+		<openmrs.version>2.8.9</openmrs.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 
@@ -50,7 +50,7 @@
 		<apacheTomcatVersion>6.0.53</apacheTomcatVersion>
 		<javaxVersion>4.0.1</javaxVersion>
 		<!-- 2.18.8 contains the security backports for the 2026 databind advisories. -->
-		<jacksonVersion>2.18.8</jacksonVersion>
+		<jacksonVersion>2.22</jacksonVersion>
 	</properties>
 
 	<!-- TODO: combine/simplify the "dependencyManagement" and "dependency" sections into a single "dependency" section and test/remove any unneeded dependencies -->
@@ -142,7 +142,7 @@
 			<dependency>
 				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
-				<version>1.14</version>
+				<version>1.22.1</version>
 				<type>jar</type>
 				<scope>compile</scope>
 			</dependency>
@@ -306,7 +306,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.14.0</version>
+					<version>3.16.0</version>
 					<configuration>
 						<target>8</target>
 						<source>8</source>
@@ -450,7 +450,7 @@
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.8.13</version>
+					<version>0.8.15</version>
 					<configuration>
 						<includes>
 							<include>org/openmrs/**</include>
@@ -468,7 +468,7 @@
 				<plugin>
 					<groupId>org.eluder.coveralls</groupId>
 					<artifactId>coveralls-maven-plugin</artifactId>
-					<version>4.2.0</version>
+					<version>4.3.0</version>
 				</plugin>
 				<plugin>
 					<groupId>com.mycila</groupId>
@@ -519,7 +519,7 @@
 			<plugin>
 			    <groupId>org.apache.maven.plugins</groupId>
 			    <artifactId>maven-surefire-plugin</artifactId>
-			    <version>3.5.3</version>
+			    <version>3.6.0</version>
 			</plugin>
 		</plugins>
 	</build>
