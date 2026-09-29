@@ -50,7 +50,7 @@
 		<apacheTomcatVersion>6.0.53</apacheTomcatVersion>
 		<javaxVersion>4.0.1</javaxVersion>
 		<!-- 2.18.8 contains the security backports for the 2026 databind advisories. -->
-		<jacksonVersion>2.18.8</jacksonVersion>
+		<jacksonVersion>2.18.10</jacksonVersion>
 	</properties>
 
 	<!-- TODO: combine/simplify the "dependencyManagement" and "dependency" sections into a single "dependency" section and test/remove any unneeded dependencies -->
